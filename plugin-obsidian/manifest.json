@@ -1,0 +1,9 @@
+{
+	"id": "transcriber-goblin",
+	"name": "Transcriber Goblin",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Notas colaborativas realtime conectadas a tu backend Transcriber Goblin.",
+	"author": "spooky",
+	"isDesktopOnly": false
+}

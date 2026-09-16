@@ -1,0 +1,24 @@
+[project]
+name = "tg-server"
+version = "0.1.0"
+description = "Transcriber Goblin backend: auth, doc tokens, attachments, CRDT mirror"
+readme = "../README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "httpx>=0.27",
+    "pycrdt>=0.14",
+    "python-multipart>=0.0.17",
+]
+
+[project.optional-dependencies]
+linker = [
+    "keybert>=0.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+]
