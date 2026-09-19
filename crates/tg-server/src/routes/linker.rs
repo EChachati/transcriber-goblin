@@ -264,7 +264,9 @@ async fn act_proposal(
     drop(db);
 
     let crdt_doc = st.crdt.open_or_create(&p_doc).await.map_err(db_err)?;
-    let content = crdt_doc.read_text().await;
+    // Un doc puede tener su verdad en el mirror (import/legacy) con el CRDT aún vacío:
+    // leemos con preferencia CRDT->mirror y, si venía del mirror, sembramos el CRDT.
+    let content = linker_svc::read_best(&st, &p_doc).await;
     let wikilink = format!("[[{target_title}]]");
     if content.contains(&wikilink) {
         return Ok(Json(json!({ "ok": true })));
@@ -272,15 +274,21 @@ async fn act_proposal(
     let Some((start, end)) = linker_svc::match_literal_offset(&content, &p_alias) else {
         return Ok(Json(json!({ "ok": false })));
     };
-    crdt_doc
-        .apply_edits(vec![LinkEdit {
-            start,
-            end,
-            replacement: wikilink,
-            target_id,
-        }])
-        .await
-        .map_err(db_err)?;
+    if crdt_doc.read_text().await.trim().is_empty() {
+        let mut edited = content;
+        edited.replace_range(start..end, &wikilink);
+        crdt_doc.apply_full_text(&edited).await.map_err(db_err)?;
+    } else {
+        crdt_doc
+            .apply_edits(vec![LinkEdit {
+                start,
+                end,
+                replacement: wikilink,
+                target_id,
+            }])
+            .await
+            .map_err(db_err)?;
+    }
 
     let db = st.db.lock().await;
     db.execute(

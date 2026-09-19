@@ -137,6 +137,7 @@ async fn full_api_suite() {
         .unwrap();
     assert!(bob["token"].as_str().unwrap().len() >= 20);
     assert_ne!(bob["user_id"], alice_id);
+    let bob_token = bob["token"].as_str().unwrap().to_string();
 
     // ---- me ----
     let resp = client.get(format!("{base}/me")).send().await.unwrap();
@@ -522,6 +523,142 @@ async fn full_api_suite() {
         .unwrap();
     assert!(graph["nodes"].as_array().unwrap().len() >= 5);
     assert!(graph["edges"].as_array().unwrap().len() >= 2);
+
+    // ---- proposals: descubrimiento, apply, dismiss y permisos ----
+    let dr: Value = {
+        let resp = client
+            .post(format!("{base}/docs"))
+            .json(&serde_json::json!({ "title": "Deploy Runbook" }))
+            .header("Authorization", auth(&alice_token))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), 200);
+        resp.json().await.unwrap()
+    };
+    let dr_id = dr["id"].as_str().unwrap().to_string();
+    std::fs::write(
+        dir.path().join("mirror").join(format!("{dr_id}.md")),
+        "Deploy runbook del servicio de deploy.",
+    )
+    .unwrap();
+
+    // run#2: detecta la palabra común "deploy" (presente en kw_doc y en dr).
+    let run2: Value = client
+        .post(format!("{base}/linker/run?target=mirror"))
+        .header("Authorization", auth(&alice_token))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let prop = run2["proposals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["alias"] == "deploy" && p["status"] == "pending")
+        .cloned();
+    let prop = prop.expect("proposal deploy pendiente");
+    // deploy aparece en el contenido de kw -> propone enlazar kw => dr ("Deploy Runbook").
+    assert_eq!(prop["doc_id"], kw_id, "source = kw (contenido)");
+    assert_eq!(prop["target_title"], "Deploy Runbook");
+    assert_eq!(prop["target_id"], dr_id);
+    let prop_id = prop["id"].as_i64().unwrap().to_string();
+
+    // apply por quien tiene acceso al doc fuente (kw).
+    let resp = client
+        .post(format!("{base}/linker/proposals/{prop_id}"))
+        .json(&serde_json::json!({ "action": "apply", "doc_id": kw_id }))
+        .header("Authorization", auth(&alice_token))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200, "apply de proposal ok");
+    let kw_mirror =
+        std::fs::read_to_string(dir.path().join("mirror").join(format!("{kw_id}.md"))).unwrap();
+    assert!(
+        kw_mirror.contains("[[Deploy Runbook]]"),
+        "apply debe wikilinkear en el mirror (source sembrado desde mirror)"
+    );
+    let props_after: Value = client
+        .get(format!("{base}/linker/proposals"))
+        .header("Authorization", auth(&alice_token))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        !props_after
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|p| p["id"].as_i64().unwrap().to_string() == prop_id),
+        "proposal aplicada no debe seguir pendiente"
+    );
+
+    // dismiss: run#3 con otro doc que reusa "deploy".
+    let def: Value = {
+        let resp = client
+            .post(format!("{base}/docs"))
+            .json(&serde_json::json!({ "title": "Deploy Fckup" }))
+            .header("Authorization", auth(&alice_token))
+            .send()
+            .await
+            .unwrap();
+        resp.json().await.unwrap()
+    };
+    let def_id = def["id"].as_str().unwrap().to_string();
+    std::fs::write(
+        dir.path().join("mirror").join(format!("{def_id}.md")),
+        "Deploy de nuevo, deploy otra vez.",
+    )
+    .unwrap();
+    let run3: Value = client
+        .post(format!("{base}/linker/run?target=mirror"))
+        .header("Authorization", auth(&alice_token))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let dprop = run3["proposals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| {
+            p["doc_id"] == def_id
+                && p["alias"].as_str().unwrap().eq_ignore_ascii_case("deploy")
+                && p["target_title"] == "Deploy Runbook"
+        })
+        .cloned()
+        .expect("proposal deploy -> def pendiente");
+    let dprop_id = dprop["id"].as_i64().unwrap().to_string();
+    let resp = client
+        .post(format!("{base}/linker/proposals/{dprop_id}"))
+        .json(&serde_json::json!({ "action": "dismiss", "doc_id": def_id }))
+        .header("Authorization", auth(&alice_token))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200, "dismiss ok");
+
+    // permisos: bob (sin acceso al doc fuente) no puede actuar sobre la proposal.
+    let resp = client
+        .post(format!("{base}/linker/proposals/{dprop_id}"))
+        .json(&serde_json::json!({ "action": "apply", "doc_id": def_id }))
+        .header("Authorization", auth(&bob_token))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        resp.status(),
+        403,
+        "bob no puede actuar la proposal de alice"
+    );
 
     // ---- ws: sync completo estilo plugin (Step1 -> Step2, escribir, re-verificar) ----
     let ws_tok = auth::doc_token(&doc_id, &cfg);
