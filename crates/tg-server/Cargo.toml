@@ -5,5 +5,24 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-anyhow.workspace = true
 tokio.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+axum.workspace = true
+tower-http.workspace = true
+sha2.workspace = true
+hmac.workspace = true
+base64.workspace = true
+rusqlite.workspace = true
+yrs.workspace = true
+yrs-axum.workspace = true
+rand.workspace = true
+futures-util = "0.3"
+tg-linker = { path = "../tg-linker" }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "multipart"] }
+tokio-tungstenite = "0.21"
+tempfile = "3"
+sha2.workspace = true
