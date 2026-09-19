@@ -102,11 +102,13 @@ Resultado: **spike STT validado, corpus + harness en el repo, baselines medidos,
 - [ ] Aplicación de links **por diffs sobre el `yrs::Doc` en memoria** — reemplaza `_apply_markdown` (`clear()+insert`) que clobberea ediciones concurrentes. *Se hace en Fase 2 al integrar el CRDT.*
 
 ### Fase 2 — tg-server (axum, arquitectura B)
-- Scaffold axum: auth (sha256 + hmac), rutas listadas en §4, `rusqlite`+`Mutex`.
-- CRDT embebido: carga binlog al boot, `yrs::Doc` por nota, ws y-sync (`yrs-axum`), mirror por `UpdateSubscription`.
-- Superficie y-sweet-compatible para el plugin (ver §4).
-- Validación: 6 tests pytest (vía un shim o TestClient equivalente) + `ws-e2e-test.mjs` → OK.
-- Deploy: build musl static, Dockerfile multistage (solo `api`) o systemd en el VPS, detrás de Caddy.
+- [x] Scaffold axum: `Settings::from_env` (`DATA_DIR/ADMIN_TOKEN/TG_HOST/TG_PORT/TG_PUBLIC_URL/MIRROR_INTERVAL`), `rusqlite`+`Mutex` (schema idéntico al Python), auth (sha256 + hmac del token de doc), CORS, `tower-http`.
+- [x] CRDT embebido: `yrs::Doc` por nota en memoria, snapshot `.bin` por doc, mirror write-through (`data/mirror/<id>.md`), canal `tokio::sync::broadcast` para peers WS.
+- [x] Superficie y-sweet-compatible para el plugin: `POST /doc/new`, `POST /doc/{id}/auth` (client token HMAC), `GET /d/{id}/as-update`, `POST /d/{id}/update`, WS `GET /d/{id}/ws/{ws_id}?token=`.
+- [x] Peer WS con y-protocols a mano (codificación yjs, no la `write_buf` de yrs en SyncStep1): sync Step1↔Step2 en ambos sentidos + updates rebroadcast; awareness ignorado por ahora (TODO presencia).
+- [x] Rutas completas: `health`, `/me`, compartición/invites/redeem, `/docs` CRUD + token, `/attachments` (multipart, dedupe por sha256), `/linker` (graph, keywords TF-IDF, aliases CRUD, proposals apply/dismiss, run `crdt|mirror`).
+- [x] Validación: test de integración único (`tests/api.rs`) cubriendo toda la API + roundtrip WS real (Step1→Step2, escribir, re-verificar por `as-update`) y rechazo con token inválido. `ws-e2e-test.mjs`: pendiente de run (no hay `node` en el entorno) — cubierto por equivalente Rust.
+- [ ] Deploy: build musl static, Dockerfile multistage (solo `api`) o systemd en el VPS, detrás de Caddy.
 
 ### Fase 3 — tg-transcriber (Linux)
 - Capture: `parec` micro+monitor → WAV 16 kHz mono s16le (igual al `capture.py`).

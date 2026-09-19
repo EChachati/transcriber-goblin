@@ -16,7 +16,6 @@ hmac.workspace = true
 base64.workspace = true
 rusqlite.workspace = true
 yrs.workspace = true
-yrs-axum.workspace = true
 rand.workspace = true
 futures-util = "0.3"
 tg-linker = { path = "../tg-linker" }
@@ -26,3 +25,4 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 tokio-tungstenite = "0.21"
 tempfile = "3"
 sha2.workspace = true
+yrs.workspace = true

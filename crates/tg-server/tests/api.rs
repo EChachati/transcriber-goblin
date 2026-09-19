@@ -9,6 +9,8 @@ use futures_util::{SinkExt, StreamExt};
 use reqwest::{multipart, Client};
 use serde_json::Value;
 use tg_server::{auth, config, db, state};
+use yrs::updates::decoder::Decode as _;
+use yrs::{Doc, GetString, Text, Transact, Update};
 
 fn sha256_hex(data: &[u8]) -> String {
     use sha2::{Digest, Sha256};
@@ -521,7 +523,7 @@ async fn full_api_suite() {
     assert!(graph["nodes"].as_array().unwrap().len() >= 5);
     assert!(graph["edges"].as_array().unwrap().len() >= 2);
 
-    // ---- ws: handshake y rechazo ----
+    // ---- ws: sync completo estilo plugin (Step1 -> Step2, escribir, re-verificar) ----
     let ws_tok = auth::doc_token(&doc_id, &cfg);
     let ws_url = format!(
         "{base_ws}/d/{doc_id}/ws/goblin-e2e?token={ws_tok}",
@@ -530,27 +532,80 @@ async fn full_api_suite() {
     let (mut socket, _r) = tokio_tungstenite::connect_async(&ws_url)
         .await
         .expect("ws connect");
-    let step1 = vec![0u8, 0, 0];
-    let framed = [step1.len() as u8]
-        .into_iter()
-        .chain(step1)
-        .collect::<Vec<_>>();
     socket
-        .send(tokio_tungstenite::tungstenite::Message::Binary(framed))
+        .send(tokio_tungstenite::tungstenite::Message::Binary(vec![
+            0u8, 0, 0,
+        ]))
         .await
         .ok();
-    let first = tokio::time::timeout(std::time::Duration::from_secs(6), socket.next())
-        .await
-        .expect("timeout esperando primer mensaje")
-        .expect("primer mensaje")
-        .expect("msg ok");
-    let data = first.into_data();
-    let bytes = strip_varint_prefix(&data);
-    assert!(
-        (0..=3).contains(&bytes[0]),
-        "primer byte debe ser mensaje yjs (0=Sync/1=Awareness), got {}",
-        bytes[0]
-    );
+    let client_doc = Doc::new();
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(6);
+    let full_state = loop {
+        let msg = tokio::time::timeout_at(deadline, socket.next())
+            .await
+            .expect("timeout esperando respuesta sync")
+            .expect("msg ok")
+            .expect("ws cerrado");
+        let data = msg.into_data();
+        if data.first() == Some(&0) && data.get(1) == Some(&0) {
+            // SyncStep1 del server: contestamos con nuestro estado (vacío aquí).
+            socket
+                .send(tokio_tungstenite::tungstenite::Message::Binary(vec![
+                    0u8, 1, 0,
+                ]))
+                .await
+                .ok();
+            continue;
+        }
+        if data.first() == Some(&0) {
+            break yjs_sync_step2_update(&data)
+                .expect("SyncStep2 esperado")
+                .to_vec();
+        }
+    };
+    {
+        let text = client_doc.get_or_insert_text("content");
+        let mut txn = client_doc.transact_mut();
+        let upd = Update::decode_v1(&full_state).expect("update step2 valido");
+        txn.apply_update(upd);
+        assert!(
+            !text.get_string(&txn).contains("hola-e2e"),
+            "estado inicial sin nuestro texto"
+        );
+        text.insert(&mut txn, 0, "hola-e2e\n");
+        let update = txn.encode_update_v1();
+        socket
+            .send(tokio_tungstenite::tungstenite::Message::Binary(
+                yjs_update_payload(&update),
+            ))
+            .await
+            .ok();
+    }
+    // el cambio escrito por ws debe verse por la API CRDT (/d/{id}/as-update)
+    let check = Doc::new();
+    let mut ok = false;
+    for _ in 0..20 {
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        let resp = client
+            .get(format!("{base}/d/{doc_id}/as-update"))
+            .header("Authorization", auth(&ws_tok))
+            .send()
+            .await
+            .unwrap();
+        if !resp.status().is_success() {
+            continue;
+        }
+        let bytes = resp.bytes().await.unwrap();
+        let upd = Update::decode_v1(&bytes).expect("update valido");
+        let text = check.get_or_insert_text("content");
+        let mut txn = check.transact_mut();
+        txn.apply_update(upd);
+        if text.get_string(&txn).contains("hola-e2e") {
+            ok = true;
+            break;
+        }
+    }
+    assert!(ok, "el texto escrito por ws debe persistir en el CRDT");
     socket.close(None).await.ok();
 
     // token incorrecto -> rechazo del handshake WS con 401
@@ -574,10 +629,41 @@ fn ws_base_of(base: &str) -> String {
     base.replace("http://", "ws://")
 }
 
-fn strip_varint_prefix(data: &[u8]) -> &[u8] {
-    let mut i = 0;
-    while i < data.len() && data[i] & 0x80 != 0 {
-        i += 1;
+fn yjs_sync_step2_update(data: &[u8]) -> Option<&[u8]> {
+    if data.first() != Some(&0) || data.get(1) != Some(&1) {
+        return None;
     }
-    &data[(i + 1).min(data.len())..]
+    let mut i = 2;
+    let mut len: u64 = 0;
+    let mut shift = 0;
+    while i < data.len() {
+        let b = data[i];
+        i += 1;
+        len |= ((b & 0x7f) as u64) << shift;
+        if b & 0x80 == 0 {
+            break;
+        }
+        shift += 7;
+    }
+    let start = i;
+    i += len as usize;
+    (i <= data.len()).then(|| &data[start..i])
+}
+
+fn yjs_update_payload(update: &[u8]) -> Vec<u8> {
+    let mut out = vec![0u8, 2];
+    let mut len = update.len();
+    loop {
+        let mut b = (len & 0x7f) as u8;
+        len >>= 7;
+        if len > 0 {
+            b |= 0x80;
+        }
+        out.push(b);
+        if len == 0 {
+            break;
+        }
+    }
+    out.extend_from_slice(update);
+    out
 }

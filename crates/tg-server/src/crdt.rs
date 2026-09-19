@@ -1,6 +1,8 @@
 //! CRDT embebido (arquitectura B): un `yrs::Doc` por nota en memoria, persistido
-//! como snapshot binario por doc, con broadcasting vía `yrs_axum::BroadcastGroup`
-//! (reemplaza a y-sweet y al polling del mirror).
+//! como snapshot binario por doc, con broadcasting vía canal `tokio::sync::broadcast`
+//! (reemplaza a y-sweet y al polling del mirror). El peer WS habla y-protocols `js`
+//! a mano (ver `routes/ysweet.rs`), porque yrs codifica SyncStep1 con `write_buf`
+//! (prefijo de longitud) y el plugin Obsidian usa la codificación de yjs.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -8,18 +10,16 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use tg_linker::LinkEdit;
-use tokio::sync::RwLock;
+use tokio::sync::{broadcast, RwLock};
 use yrs::sync::Awareness;
 use yrs::updates::decoder::Decode;
 use yrs::{Doc, GetString, ReadTxn, StateVector, Text, Transact, Update};
-use yrs_axum::broadcast::BroadcastGroup;
-use yrs_axum::AwarenessRef;
 
-/// Nota viva en memoria. Un `Doc` por doc; `BroadcastGroup` reenvía updates/awareness
-/// por WS y alimenta el mirror write-through en `persist()`.
+/// Nota viva en memoria. Un `Doc` por doc; el canal reenvía updates/awareness
+/// a los peers WS conectados y `persist()` alimenta el mirror write-through.
 pub struct CrdtDoc {
-    awareness: AwarenessRef,
-    pub bcast: Arc<BroadcastGroup>,
+    pub awareness: Arc<RwLock<Awareness>>,
+    pub tx: broadcast::Sender<Vec<u8>>,
     bin_path: PathBuf,
     mirror_path: PathBuf,
 }
@@ -67,12 +67,12 @@ impl CrdtStore {
         }
         // garantiza la raíz "content" (mejor: siempre existe tras el primer acceso)
         let _ = doc.get_or_insert_text("content");
-        let awareness: AwarenessRef = Arc::new(RwLock::new(Awareness::new(doc)));
-        let bcast = Arc::new(BroadcastGroup::new(awareness.clone(), 128).await);
+        let awareness = Arc::new(RwLock::new(Awareness::new(doc)));
+        let (tx, _) = broadcast::channel(128);
 
         let crdt_doc = Arc::new(CrdtDoc {
             awareness,
-            bcast,
+            tx,
             bin_path,
             mirror_path,
         });
@@ -84,6 +84,43 @@ impl CrdtStore {
 }
 
 impl CrdtDoc {
+    /// Suscriptor al canal de updates de este doc (para peers WS).
+    pub fn subscribe(&self) -> broadcast::Receiver<Vec<u8>> {
+        self.tx.subscribe()
+    }
+
+    /// Reenvía un mensaje yjs completo a todos los peers conectados de este doc
+    /// (echo incluido; los clientes deduplican updates ya integrados).
+    pub fn broadcast(&self, framed_msg: Vec<u8>) {
+        let _ = self.tx.send(framed_msg);
+    }
+
+    /// Enmarca un update y-sync v1 como `messageSync`/`messageYjsUpdate` (formato yjs).
+    pub fn framed_update(raw: Vec<u8>) -> Vec<u8> {
+        let mut out = vec![0u8, 2];
+        let mut len = raw.len();
+        loop {
+            let mut b = (len & 0x7f) as u8;
+            len >>= 7;
+            if len > 0 {
+                b |= 0x80;
+            }
+            out.push(b);
+            if len == 0 {
+                break;
+            }
+        }
+        out.extend_from_slice(&raw);
+        out
+    }
+
+    /// Diff completo desde SV vacío como update crudo (para as-update).
+    pub async fn state_update(&self) -> Vec<u8> {
+        let aw = self.awareness.read().await;
+        let txn = aw.doc().transact();
+        txn.encode_state_as_update_v1(&StateVector::default())
+    }
+
     /// Contenido markdown actual del doc (texto crudo del CRDT).
     pub async fn read_text(&self) -> String {
         let aw = self.awareness.read().await;
@@ -92,14 +129,8 @@ impl CrdtDoc {
         text.get_string(&txn)
     }
 
-    /// Snapshot completo (diff desde SV vacío) - para `/d/{id}/as-update`.
-    pub async fn state_update(&self) -> Vec<u8> {
-        let aw = self.awareness.read().await;
-        let txn = aw.doc().transact();
-        txn.encode_state_as_update_v1(&StateVector::default())
-    }
-
-    /// Aplica bytes y-sync v1 externos (POST /d/{id}/update o transcriber).
+    /// Aplica bytes y-sync v1 externos (POST /d/{id}/update, transcriber o peer WS)
+    /// y los reenvía al resto de peers.
     pub async fn apply_update_bytes(&self, bytes: &[u8]) -> Result<()> {
         // `Update` no es Send: se decodifica ya dentro del lock (no cruza awaits).
         {
@@ -111,7 +142,9 @@ impl CrdtDoc {
             txn.commit();
             drop(txn);
         }
-        self.persist().await
+        self.persist().await?;
+        self.broadcast(CrdtDoc::framed_update(bytes.to_vec()));
+        Ok(())
     }
 
     /// Aplica ediciones del linker (offsets de byte del `String` leído) en estricto
@@ -134,7 +167,9 @@ impl CrdtDoc {
             txn.commit();
             drop(txn);
         }
-        self.persist().await
+        self.persist().await?;
+        self.broadcast(CrdtDoc::framed_update(self.state_update().await));
+        Ok(())
     }
 
     /// Reemplaza el texto entero (aplicar propuesta o publish del transcriber).
@@ -152,7 +187,9 @@ impl CrdtDoc {
             txn.commit();
             drop(txn);
         }
-        self.persist().await
+        self.persist().await?;
+        self.broadcast(CrdtDoc::framed_update(self.state_update().await));
+        Ok(())
     }
 
     /// Escribe el espejo `.md` y el snapshot `.bin` de forma atómica (tmp+rename).

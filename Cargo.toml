@@ -24,5 +24,4 @@ hmac = "0.12"
 base64 = "0.22"
 rusqlite = { version = "0.32", features = ["bundled"] }
 yrs = "0.18"
-yrs-axum = "0.8"
 rand = "0.8"
