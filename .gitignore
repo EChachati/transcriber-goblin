@@ -9,3 +9,5 @@ node_modules/
 dist/
 main.js
 uv.lock
+/target/
+crates/*/models/

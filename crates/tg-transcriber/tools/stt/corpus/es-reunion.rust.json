@@ -1,0 +1,27 @@
+[
+  {
+    "start": 0.0,
+    "end": 2.0,
+    "text": " Buenas tardes a todos."
+  },
+  {
+    "start": 2.0,
+    "end": 7.0,
+    "text": " En esta reunión vamos a repasar los objetivos de la semana."
+  },
+  {
+    "start": 7.0,
+    "end": 13.0,
+    "text": " Hemos decidido desplegar el servidor el viernes y migrar la base de datos a la nueva máquina."
+  },
+  {
+    "start": 13.0,
+    "end": 19.0,
+    "text": " La tarea pendiente es revisar los permisos de los invitados antes de publicar el enlace."
+  },
+  {
+    "start": 19.0,
+    "end": 25.0,
+    "text": " María se encargará de escribir las notas y de subirlas al repositorio principal."
+  }
+]
