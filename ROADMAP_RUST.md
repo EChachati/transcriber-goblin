@@ -107,7 +107,9 @@ Resultado: **spike STT validado, corpus + harness en el repo, baselines medidos,
 - [x] Superficie y-sweet-compatible para el plugin: `POST /doc/new`, `POST /doc/{id}/auth` (client token HMAC), `GET /d/{id}/as-update`, `POST /d/{id}/update`, WS `GET /d/{id}/ws/{ws_id}?token=`.
 - [x] Peer WS con y-protocols a mano (codificación yjs, no la `write_buf` de yrs en SyncStep1): sync Step1↔Step2 en ambos sentidos + updates rebroadcast; awareness ignorado por ahora (TODO presencia).
 - [x] Rutas completas: `health`, `/me`, compartición/invites/redeem, `/docs` CRUD + token, `/attachments` (multipart, dedupe por sha256), `/linker` (graph, keywords TF-IDF, aliases CRUD, proposals apply/dismiss, run `crdt|mirror`).
-- [x] Validación: test de integración único (`tests/api.rs`) cubriendo toda la API + roundtrip WS real (Step1→Step2, escribir, re-verificar por `as-update`) y rechazo con token inválido. `ws-e2e-test.mjs`: pendiente de run (no hay `node` en el entorno) — cubierto por equivalente Rust.
+- [x] Proposals: ciclo completo probado (descubrimiento por variantes de título/contenido, `apply` con fallback mirror→CRDT que siembra el doc, `dismiss`, y rechazo por acceso).
+- [x] Validación: test de integración único (`tests/api.rs`) cubriendo toda la API + roundtrip WS real (Step1→Step2, escribir, re-verificar por `as-update`), rechazo con token inválido y ciclo de proposals. `ws-e2e-test.mjs` pendiente de run (este entorno no tiene `node`); cubierto por el equivalente Rust en `tests/api.rs`.
+- [ ] Pending TODO menor: awareness/presencia en el peer WS (hoy se ignora el tag 1).
 - [ ] Deploy: build musl static, Dockerfile multistage (solo `api`) o systemd en el VPS, detrás de Caddy.
 
 ### Fase 3 — tg-transcriber (Linux)
