@@ -1,4 +1,3 @@
-import shutil
 import subprocess
 import time
 import wave
@@ -8,8 +7,12 @@ SAMPLE_RATE = 16000
 
 
 def _pactl(*args: str) -> str:
+    "executes PulseAudio/Pipewire and return the output"
     result = subprocess.run(
-        ["pactl", *args], capture_output=True, text=True
+        ["pactl", *args],
+        capture_output=True,
+        text=True,
+        check=True,
     )
     return result.stdout.strip()
 
@@ -33,7 +36,7 @@ def list_sources() -> list[str]:
     ]
 
 
-class StreamRecorder:
+class AudioStreamRecorder:
     def __init__(self, target: str, label: str, wav_path: str | Path):
         self.target = target
         self.label = label
@@ -45,7 +48,7 @@ class StreamRecorder:
 
     def start(self) -> None:
         self.t0 = time.time()
-        self._stdout = open(self.raw_path, "wb")
+        self._stdout = open(self.raw_path, "wb")  # noqa: SIM115
         self.proc = subprocess.Popen(
             [
                 "parec",

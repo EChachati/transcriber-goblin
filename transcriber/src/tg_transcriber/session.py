@@ -3,7 +3,7 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from .capture import StreamRecorder, resolve_targets
+from .capture import AudioStreamRecorder, resolve_targets
 from .stt import Segment, Transcriber
 
 _MODEL_CACHE: dict = {}
@@ -35,12 +35,12 @@ class Session:
                 "no se pudo resolver fuentes de audio (¿pactl/pipewire instalado?)"
             )
         self.mic_rec = (
-            StreamRecorder(mic_target, "TU", self.out_dir / "mic.wav")
+            AudioStreamRecorder(mic_target, "TU", self.out_dir / "mic.wav")
             if mic_target
             else None
         )
         self.desk_rec = (
-            StreamRecorder(monitor_target, "REMOTO", self.out_dir / "desktop.wav")
+            AudioStreamRecorder(monitor_target, "REMOTO", self.out_dir / "desktop.wav")
             if monitor_target
             else None
         )
@@ -66,10 +66,10 @@ class Session:
                 continue
             if durations[rec.label] < 1.0:
                 continue
-            print(f"[stt] transcribiendo stream {rec.label} ({durations[rec.label]:.0f}s)...")
-            segments.extend(
-                model.transcribe_file(str(rec.wav_path), source=rec.label)
+            print(
+                f"[stt] transcribiendo stream {rec.label} ({durations[rec.label]:.0f}s)..."
             )
+            segments.extend(model.transcribe_file(str(rec.wav_path), source=rec.label))
         segments.sort(key=lambda s: s.start)
 
         transcript = {
