@@ -1,5 +1,52 @@
+import datetime as dt
+import re
+from pathlib import Path
+
 import httpx
 from pycrdt import Doc, Text
+
+
+def _sanitize_filename(name: str) -> str:
+    name = name.strip().replace("/", "-").replace("\\", "-")
+    name = re.sub(r"[^\w\s\.\-áéíóúÁÉÍÓÚñÑ]", "", name)
+    name = re.sub(r"\s+", " ", name)
+    return name or "sin-titulo"
+
+
+def write_to_obsidian(
+    vault_path: str | Path,
+    markdown: str,
+    title: str,
+    folder: str | None = None,
+    overwrite: bool = True,
+    timestamp: bool = True,
+) -> Path:
+    vault = Path(vault_path).expanduser()
+
+    if not vault.exists() or not vault.is_dir():
+        raise FileNotFoundError(f"Vault de Obsidian no encontrado: {vault}")
+
+    dest_folder = vault
+    if folder and folder.strip():
+        dest_folder = vault / folder.strip()
+    dest_folder.mkdir(parents=True, exist_ok=True)
+
+    safe_title = _sanitize_filename(title)
+    if timestamp:
+        ts = dt.datetime.now().strftime("%Y-%m-%d_%H-%M")
+        base = f"{ts} - {safe_title}"
+    else:
+        base = safe_title
+
+    candidate = dest_folder / f"{base}.md"
+    if not overwrite and candidate.exists():
+        idx = 2
+        while (dest_folder / f"{base}_{idx}.md").exists():
+            idx += 1
+        candidate = dest_folder / f"{base}_{idx}.md"
+
+    candidate.write_text(markdown, encoding="utf-8")
+    return candidate
 
 
 def render_markdown(
@@ -8,8 +55,6 @@ def render_markdown(
     segments: list,
     audio_attachment_uris: dict[str, str] | None = None,
 ) -> str:
-    import datetime as dt
-
     date = dt.datetime.fromtimestamp(started_at_epoch).strftime("%Y-%m-%d %H:%M")
     lines = [
         f"# {session_name}",
@@ -58,7 +103,11 @@ def publish_note(api_url: str, token: str, title: str, markdown: str) -> str:
     ct = httpx.post(f"{base}/docs/{doc_id}/token", headers=headers, timeout=30)
     ct.raise_for_status()
     client_token = ct.json()
-    ws_base = client_token["baseUrl"].replace("wss://", "https://").replace("ws://", "http://")
+    ws_base = (
+        client_token["baseUrl"]
+        .replace("wss://", "https://")
+        .replace("ws://", "http://")
+    )
     auth_headers = {}
     if client_token.get("token"):
         auth_headers["Authorization"] = f"Bearer {client_token['token']}"

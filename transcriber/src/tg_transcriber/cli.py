@@ -6,9 +6,15 @@ import sys
 import time
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from .capture import list_sources, resolve_targets
-from .publish import publish_note, render_markdown, upload_attachment
+from .publish import publish_note, render_markdown, upload_attachment, write_to_obsidian
 from .session import Session
+
+# Cargar .env si existe
+load_dotenv(Path.cwd() / ".env")
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 DEFAULT_API_URL = os.environ.get("TG_API_URL", "http://localhost:8000")
 DEFAULT_SESSIONS_DIR = Path(
@@ -31,7 +37,9 @@ def cmd_devices(_args) -> int:
 
 
 def cmd_record(args) -> int:
-    token = args.token or os.environ.get("TG_TOKEN") or input("Token de usuario TG: ").strip()
+    token = None
+    if args.publish:
+        token = args.token or os.environ.get("TG_TOKEN") or input("Token de usuario TG: ").strip()
     name = args.name or f"Sesion {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}"
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     slug = "".join(c if c.isalnum() else "-" for c in name.lower()).strip("-")[:40]
@@ -69,7 +77,7 @@ def cmd_record(args) -> int:
     print(f"[stt] {len(segments)} segmentos")
 
     attachments: dict[str, str] = {}
-    if not args.no_upload_audio and not args.no_publish:
+    if args.publish and not args.no_upload_audio and token:
         for rec in (session.mic_rec, session.desk_rec):
             if rec is not None and rec.duration() > 0:
                 try:
@@ -84,9 +92,23 @@ def cmd_record(args) -> int:
     md_path.write_text(markdown, encoding="utf-8")
     print(f"[ok] transcript local: {md_path}")
 
-    if not args.no_publish:
+    if args.publish and token:
         doc_id = publish_note(args.api_url, token, name, markdown)
         print(f"[ok] nota publicada en el backend: doc={doc_id}")
+
+    obs_vault = args.obsidian_vault or os.environ.get("TG_OBSIDIAN_VAULT")
+    if obs_vault:
+        try:
+            obs_path = write_to_obsidian(
+                vault_path=obs_vault,
+                markdown=markdown,
+                title=name,
+                folder=args.obsidian_folder or os.environ.get("TG_OBSIDIAN_FOLDER"),
+                overwrite=not args.obsidian_no_overwrite,
+            )
+            print(f"[ok] escrito en Obsidian: {obs_path}")
+        except Exception as exc:
+            print(f"[warn] no se pudo escribir en Obsidian: {exc!r}")
     return 0
 
 
@@ -104,8 +126,23 @@ def main(argv=None) -> int:
     p_rec.add_argument("--language", default=None, help="código ISO (es/en/...) o auto")
     p_rec.add_argument("--token", default=None, help="token de usuario del backend")
     p_rec.add_argument("--out", default=None, help="directorio base de sesiones")
-    p_rec.add_argument("--no-publish", action="store_true")
-    p_rec.add_argument("--no-upload-audio", action="store_true")
+    p_rec.add_argument("--publish", action="store_true", help="publicar nota en el backend/API")
+    p_rec.add_argument("--no-upload-audio", action="store_true", help="no subir audios (solo con --publish)")
+    p_rec.add_argument(
+        "--obsidian-vault",
+        default=None,
+        help="ruta al vault de Obsidian (TG_OBSIDIAN_VAULT)",
+    )
+    p_rec.add_argument(
+        "--obsidian-folder",
+        default=None,
+        help="carpeta dentro del vault (TG_OBSIDIAN_FOLDER)",
+    )
+    p_rec.add_argument(
+        "--obsidian-no-overwrite",
+        action="store_true",
+        help="no sobrescribir si el archivo ya existe",
+    )
     p_rec.set_defaults(func=cmd_record)
 
     args = parser.parse_args(argv)
