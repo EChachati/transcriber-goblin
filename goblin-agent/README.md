@@ -32,15 +32,19 @@ El resultado aparece en tu copia de trabajo:
 1. **Trocea** la transcripción en tramos, cortando en los **silencios** naturales
    (no en mitad de una conversación) para no perder contexto.
 2. **Resume cada tramo** (*map*), dándole al modelo las fichas del vault que se
-   mencionan (NPCs, lugares, objetos…) para que use los nombres correctos. Cada
-   tramo termina marcando su **hecho más importante** (`CLAVE: …`).
+   mencionan (NPCs, lugares, objetos…) para que use los nombres correctos.
+   Además le pasa unas **pistas de trama** sacadas de la propia transcripción
+   (líneas con nombres propios, muertes, revelaciones o misiones) para que no se
+   le escapen los hechos importantes. Cada tramo termina marcando su **hecho más
+   importante** (`CLAVE: …`).
 3. **Agrupa** los resúmenes en lotes que quepan en el contexto del modelo y pide
    **una sección** por lote (las concatena). Así **toda** la sesión aparece en la
    nota, por larga que sea (4–8 h), sin que ningún tramo se pierda.
-4. **Garantiza los hechos clave y limpia el texto** sin volver a llamar al
-   modelo: si un `CLAVE:` no apareció en su sección, se añade su viñeta a mano;
-   y se filtran por patrones las viñetas de dados, de charla del directo y las
-   repeticiones casi idénticas.
+4. **Garantiza los hechos y limpia el texto** sin volver a llamar al modelo: si un
+   `CLAVE:` no apareció en su sección, se añade su viñeta a mano; si un tramo con
+   hechos se quedó fuera, se añade su viñeta más representativa; y se filtran por
+   patrones las viñetas de dados/reglas, de charla del directo y las repeticiones
+   casi idénticas.
 5. **Escribe la nota final** en pasos separados:
    - el **cuerpo** (solo la sesión de hoy, en secciones con título),
    - las **secciones de cierre** de la plantilla, y
@@ -73,10 +77,10 @@ uv sync
 uv sync --group dev
 ```
 
-Descarga un modelo en Ollama (el pequeño es rápido; ver «Modelos» más abajo):
+Descarga un modelo en Ollama (por defecto se usa `qwen2.5:7b`; ver «Modelos» más abajo):
 
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:7b
 ```
 
 Comprueba que todo responde:
@@ -105,7 +109,7 @@ Variables disponibles (todas son opcionales; estos son los valores por defecto):
 | `TG_GOBLIN_SOURCE_VAULT` | Vault **original** (solo lectura) | `~/Documents/CurseOfStrahd` |
 | `TG_GOBLIN_WORK_VAULT` | Copia de trabajo (aquí se escribe) | `~/Documents/TranscriberGoblin/CurseOfStrahd-Goblin` |
 | `TG_GOBLIN_CAMPAIGN` | Nombre de la campaña | `Curse of Strahd` |
-| `TG_GOBLIN_MODEL` | Modelo de Ollama | `qwen2.5:3b` |
+| `TG_GOBLIN_MODEL` | Modelo de Ollama | `qwen2.5:7b` |
 | `TG_GOBLIN_OLLAMA_URL` | URL de Ollama | `http://localhost:11434` |
 | `TG_GOBLIN_LANGUAGE` | Idioma del resumen | `es` |
 | `TG_GOBLIN_NUM_CTX` | Contexto del modelo (tokens) | `8192` |
@@ -235,19 +239,24 @@ No hay forma de que `goblin-agent` modifique tus notas buenas por accidente.
 
 ## Modelos
 
-El modelo por defecto es `qwen2.5:3b`: cabe en GPUs pequeñas (una de 4 GB va
-sobrada) y es rápido, pero **se le escapan hechos importantes** y a veces copia la
-transcripción en vez de resumirla. Con `qwen2.5:3b`, cuentas con un borrador
-flojo: sirve para ver la estructura, no para quedártelo.
-
-Recomendación: usa **`qwen2.5:7b`** (o superior) si tu equipo lo aguanta. Cabe en
-4 GB de VRAM con *offload* a RAM, tarda ~40–60 s por tramo (una sesión de 3 h son
-unos 25–35 min) y los hechos clave («el cuerpo de Bruna está acoplado con el de
-Enza», la muerte de Ari, la revelación de la Aasimar) sí aparecen:
+El modelo por defecto es **`qwen2.5:7b`**: cabe en 4 GB de VRAM con *offload* a
+RAM, tarda ~40–60 s por tramo (una sesión de 3 h son unos 25–35 min) y captura
+los hechos clave («el cuerpo de Bruna está acoplado con el de Enza», la muerte de
+Ari, la revelación de la Aasimar):
 
 ```bash
 ollama pull qwen2.5:7b
-goblin-agent summarize transcript.json --model qwen2.5:7b
+goblin-agent summarize transcript.json
+```
+
+Si necesitas velocidad por encima de todo, `qwen2.5:3b` cabe sobrado y es más
+rápido, pero **se le escapan hechos importantes** y a veces copia la transcripción
+en vez de resumirla; con él cuentas con un borrador flojo (sirve para ver la
+estructura, no para quedártelo). Para usarlo:
+
+```bash
+ollama pull qwen2.5:3b
+goblin-agent summarize transcript.json --model qwen2.5:3b
 ```
 
 ---
@@ -264,7 +273,7 @@ uv run goblin-agent info
 # 2) Sincroniza la copia de trabajo desde tu vault original
 uv run goblin-agent refresh
 
-# 3) Genera el borrador del ejemplo (~40 s con qwen2.5:3b)
+# 3) Genera el borrador del ejemplo
 uv run goblin-agent summarize examples/transcript-ejemplo.json --no-refresh
 ```
 
