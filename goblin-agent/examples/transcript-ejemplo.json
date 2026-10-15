@@ -1,0 +1,748 @@
+{
+  "session": "Synthetic Berez",
+  "started_at": 1791882040.0,
+  "durations_s": {
+    "TU": 0,
+    "REMOTO": 0
+  },
+  "segments": [
+    {
+      "start": 2.0,
+      "end": 8.58,
+      "source": "REMOTO",
+      "text": "Bueno, retomamos donde lo dejamos la semana pasada, estáis en Vallaki de noche."
+    },
+    {
+      "start": 9.18,
+      "end": 15.18,
+      "source": "TU",
+      "text": "Vale, quiero revisar el collar de ámbar que cogimos del cuerpo de Pablo."
+    },
+    {
+      "start": 15.78,
+      "end": 21.2,
+      "source": "REMOTO",
+      "text": "Yo lo llevo envuelto en un paño, no pienso tocarlo con las manos."
+    },
+    {
+      "start": 21.8,
+      "end": 28.3,
+      "source": "REMOTO",
+      "text": "La Mujer de Negro dice que cuando lo tocó vio el Templo de Ámbar, la creación."
+    },
+    {
+      "start": 28.9,
+      "end": 35.82,
+      "source": "TU",
+      "text": "Sí, vi magos que al principio eran buenos y luego fueron corrompidos por entidades."
+    },
+    {
+      "start": 36.42,
+      "end": 42.92,
+      "source": "REMOTO",
+      "text": "Entonces el collar emite niebla negra cerca de la magia oscura, como un radar."
+    },
+    {
+      "start": 43.52,
+      "end": 49.52,
+      "source": "REMOTO",
+      "text": "De acuerdo, propongo ir a hablar con Ismark antes de salir de la ciudad."
+    },
+    {
+      "start": 50.12,
+      "end": 54.95,
+      "source": "TU",
+      "text": "Cuidado, Ismark está destrozado desde la muerte de Ireena."
+    },
+    {
+      "start": 55.55,
+      "end": 59.88,
+      "source": "REMOTO",
+      "text": "Vamos a la posada del Agua Azul a ver si sigue allí."
+    },
+    {
+      "start": 60.48,
+      "end": 66.57,
+      "source": "REMOTO",
+      "text": "Al entrar, Ismark está sentado solo en una esquina con la mirada perdida."
+    },
+    {
+      "start": 67.17,
+      "end": 72.58,
+      "source": "TU",
+      "text": "Ismark, necesitamos hablar de Vasili y de lo que pasó con Ireena."
+    },
+    {
+      "start": 73.18,
+      "end": 78.85,
+      "source": "REMOTO",
+      "text": "Vasili no era quien decía ser, era Strahd disfrazado todo el tiempo."
+    },
+    {
+      "start": 79.45,
+      "end": 85.28,
+      "source": "REMOTO",
+      "text": "Eso explica por qué Vasili contrató a Pablo para matar a la alcaldesa."
+    },
+    {
+      "start": 85.88,
+      "end": 91.13,
+      "source": "TU",
+      "text": "Entonces Lady Wachter también estaba metida en la conspiración."
+    },
+    {
+      "start": 91.73,
+      "end": 97.32,
+      "source": "REMOTO",
+      "text": "Sí, y ahora la ciudad está en caos con la mitad del consejo muerto."
+    },
+    {
+      "start": 97.92,
+      "end": 103.0,
+      "source": "REMOTO",
+      "text": "Propongo que salgamos hacia las Ruinas de Berez cuanto antes."
+    },
+    {
+      "start": 103.6,
+      "end": 109.18,
+      "source": "TU",
+      "text": "Baba Lysaga tiene información sobre las gemas y el Templo de Ámbar."
+    },
+    {
+      "start": 109.78,
+      "end": 114.95,
+      "source": "REMOTO",
+      "text": "Antes de salir, quiero comprar provisiones y una cuerda nueva."
+    },
+    {
+      "start": 115.55,
+      "end": 121.22,
+      "source": "REMOTO",
+      "text": "Hay una tienda de Bildrath en el pueblo de Barovia, pero está lejos."
+    },
+    {
+      "start": 121.82,
+      "end": 127.57,
+      "source": "TU",
+      "text": "Mejor compramos aquí, aunque el mercader de Vallaki nos cobre de más."
+    },
+    {
+      "start": 128.17,
+      "end": 132.67,
+      "source": "REMOTO",
+      "text": "Vale, compro raciones para cinco días y dos antorchas."
+    },
+    {
+      "start": 133.27,
+      "end": 139.6,
+      "source": "REMOTO",
+      "text": "Kaelen, ¿tienes suficiente componente para el hechizo de detección de magia?"
+    },
+    {
+      "start": 140.2,
+      "end": 145.78,
+      "source": "TU",
+      "text": "Tengo tres usos del pergamino que encontré en la Casa de la Muerte."
+    },
+    {
+      "start": 146.38,
+      "end": 151.88,
+      "source": "REMOTO",
+      "text": "Perfecto, guardémoslo para el Templo, no lo gastemos en el camino."
+    },
+    {
+      "start": 152.48,
+      "end": 158.48,
+      "source": "REMOTO",
+      "text": "Mientras salimos de Vallaki, noto que alguien nos sigue por los tejados."
+    },
+    {
+      "start": 159.08,
+      "end": 164.17,
+      "source": "TU",
+      "text": "Yo saco la espada y finjo que discuto con Lex para disimular."
+    },
+    {
+      "start": 164.77,
+      "end": 170.85,
+      "source": "REMOTO",
+      "text": "El espía huye y desaparece entre las sombras hacia el castillo Ravenloft."
+    },
+    {
+      "start": 171.45,
+      "end": 175.62,
+      "source": "REMOTO",
+      "text": "Es Strahd, siempre nos observa, no puede evitarlo."
+    },
+    {
+      "start": 176.22,
+      "end": 181.13,
+      "source": "TU",
+      "text": "Ignorémoslo y sigamos el camino hacia el este, hacia Berez."
+    },
+    {
+      "start": 181.73,
+      "end": 188.07,
+      "source": "REMOTO",
+      "text": "Al amanecer llegamos a un cruce con un cartel destrozado que apunta a Berez."
+    },
+    {
+      "start": 188.67,
+      "end": 194.75,
+      "source": "REMOTO",
+      "text": "El camino está cubierto de niebla y los árboles parecen susurrar nombres."
+    },
+    {
+      "start": 195.35,
+      "end": 200.1,
+      "source": "TU",
+      "text": "Los susurros repiten el nombre de Tatyana una y otra vez."
+    },
+    {
+      "start": 200.7,
+      "end": 206.37,
+      "source": "REMOTO",
+      "text": "No prestéis atención, es una ilusión del Templo o del propio Strahd."
+    },
+    {
+      "start": 206.97,
+      "end": 212.55,
+      "source": "REMOTO",
+      "text": "Avanzamos despacio, la Mujer de Negro va delante leyendo el collar."
+    },
+    {
+      "start": 213.15,
+      "end": 218.9,
+      "source": "TU",
+      "text": "El collar empieza a emitir una niebla negra muy tenue hacia el norte."
+    },
+    {
+      "start": 219.5,
+      "end": 224.92,
+      "source": "REMOTO",
+      "text": "Entonces la magia oscura más fuerte está cerca, en esa dirección."
+    },
+    {
+      "start": 225.52,
+      "end": 230.77,
+      "source": "REMOTO",
+      "text": "Eso confirma que Berez y Baba Lysaga son el siguiente objetivo."
+    },
+    {
+      "start": 231.37,
+      "end": 237.37,
+      "source": "TU",
+      "text": "De repente oímos un aullido y tres hombres lobo salen de los matorrales."
+    },
+    {
+      "start": 237.97,
+      "end": 243.13,
+      "source": "REMOTO",
+      "text": "¡Emboscada! Kaelen, usa el hechizo de fuego para dispersarlos."
+    },
+    {
+      "start": 243.73,
+      "end": 249.32,
+      "source": "REMOTO",
+      "text": "Lanzo llamarada sobre el primero, intentando no quemar los árboles."
+    },
+    {
+      "start": 249.92,
+      "end": 254.67,
+      "source": "TU",
+      "text": "Yo me pongo delante de Lex para protegerla con el escudo."
+    },
+    {
+      "start": 255.27,
+      "end": 260.27,
+      "source": "REMOTO",
+      "text": "Los hombres lobo atacan en manada, dos vienen por el flanco."
+    },
+    {
+      "start": 260.87,
+      "end": 266.62,
+      "source": "REMOTO",
+      "text": "La Mujer de Negro lanza un escudo de energía y bloquea al más grande."
+    },
+    {
+      "start": 267.22,
+      "end": 273.22,
+      "source": "TU",
+      "text": "Vor'mex, aprovecha para atacarle por la espalda mientras está distraído."
+    },
+    {
+      "start": 273.82,
+      "end": 278.15,
+      "source": "REMOTO",
+      "text": "Le clavo las dagas y cae al suelo aullando de dolor."
+    },
+    {
+      "start": 278.75,
+      "end": 284.08,
+      "source": "REMOTO",
+      "text": "Los otros dos huyen hacia el bosque al ver la niebla del collar."
+    },
+    {
+      "start": 284.68,
+      "end": 291.1,
+      "source": "TU",
+      "text": "Interesante, la niebla negra los asusta, quizá también sirva contra vampiros."
+    },
+    {
+      "start": 291.7,
+      "end": 296.87,
+      "source": "REMOTO",
+      "text": "Vendamos nuestras heridas y sigamos, no queremos acampar aquí."
+    },
+    {
+      "start": 297.47,
+      "end": 303.22,
+      "source": "REMOTO",
+      "text": "Al mediodía llegamos a un caserío abandonado con un molino en ruinas."
+    },
+    {
+      "start": 303.82,
+      "end": 308.4,
+      "source": "TU",
+      "text": "Esto no es Berez todavía, Berez está junto al río Luna."
+    },
+    {
+      "start": 309.0,
+      "end": 314.17,
+      "source": "REMOTO",
+      "text": "Registremos el molino por si hay algo útil antes de continuar."
+    },
+    {
+      "start": 314.77,
+      "end": 320.85,
+      "source": "REMOTO",
+      "text": "Dentro del molino huele a harina podrida y hay huellas de garras enormes."
+    },
+    {
+      "start": 321.45,
+      "end": 327.03,
+      "source": "TU",
+      "text": "Encuentro un diario roto que menciona a la familia Dust y a Strahd."
+    },
+    {
+      "start": 327.63,
+      "end": 333.47,
+      "source": "REMOTO",
+      "text": "El diario habla de un pacto y de un ritual con sangre, da escalofríos."
+    },
+    {
+      "start": 334.07,
+      "end": 339.4,
+      "source": "REMOTO",
+      "text": "Guardemos el diario, puede ser útil para entender a Baba Lysaga."
+    },
+    {
+      "start": 340.0,
+      "end": 345.17,
+      "source": "TU",
+      "text": "Salimos del molino y seguimos el curso del río hacia el norte."
+    },
+    {
+      "start": 345.77,
+      "end": 351.6,
+      "source": "REMOTO",
+      "text": "Empieza a llover, la niebla se espesa y perdemos el cartel del camino."
+    },
+    {
+      "start": 352.2,
+      "end": 358.78,
+      "source": "REMOTO",
+      "text": "Creo que nos hemos perdido, deberíamos orientarnos con una tirada de sabiduría."
+    },
+    {
+      "start": 359.38,
+      "end": 365.47,
+      "source": "TU",
+      "text": "Saco la brújula de Arcaris, pero la aguja gira como loca, hay magia aquí."
+    },
+    {
+      "start": 366.07,
+      "end": 372.07,
+      "source": "REMOTO",
+      "text": "Entonces estamos cerca de algo importante, la magia afecta a la brújula."
+    },
+    {
+      "start": 372.67,
+      "end": 377.5,
+      "source": "REMOTO",
+      "text": "Veo una luz tenue entre los árboles, puede ser una cabaña."
+    },
+    {
+      "start": 378.1,
+      "end": 384.35,
+      "source": "TU",
+      "text": "Nos acercamos con cuidado, el collar de ámbar ahora emite niebla constante."
+    },
+    {
+      "start": 384.95,
+      "end": 391.28,
+      "source": "REMOTO",
+      "text": "Es una cabaña flotante sostenida sobre patas de pollo, es la de Baba Lysaga."
+    },
+    {
+      "start": 391.88,
+      "end": 397.05,
+      "source": "REMOTO",
+      "text": "¡No se acerquen! Las cabañas andantes suelen estar embrujadas."
+    },
+    {
+      "start": 397.65,
+      "end": 403.48,
+      "source": "TU",
+      "text": "Baba Lysaga sale a la puerta y nos mira con sus ojos blancos y vacíos."
+    },
+    {
+      "start": 404.08,
+      "end": 409.0,
+      "source": "REMOTO",
+      "text": "Mmm, visitas, cuanto tiempo sin que nadie venga a molestar."
+    },
+    {
+      "start": 409.6,
+      "end": 415.18,
+      "source": "REMOTO",
+      "text": "Baba Lysaga, venimos a preguntar por las gemas del Templo de Ámbar."
+    },
+    {
+      "start": 415.78,
+      "end": 420.28,
+      "source": "TU",
+      "text": "¿Y por qué crees, niña, que yo iba a ayudarte con eso?"
+    },
+    {
+      "start": 420.88,
+      "end": 426.8,
+      "source": "REMOTO",
+      "text": "Porque el collar del Templo está en nuestras manos y puede interesarte."
+    },
+    {
+      "start": 427.4,
+      "end": 433.23,
+      "source": "REMOTO",
+      "text": "La bruja mira el collar envuelto y sonríe, mostrando dientes podridos."
+    },
+    {
+      "start": 433.83,
+      "end": 439.25,
+      "source": "TU",
+      "text": "Interesante, ese collar perteneció a un mago que ahora es ceniza."
+    },
+    {
+      "start": 439.85,
+      "end": 443.77,
+      "source": "REMOTO",
+      "text": "Decidme, ¿qué sabéis ya del Templo y de Strahd?"
+    },
+    {
+      "start": 444.37,
+      "end": 449.95,
+      "source": "REMOTO",
+      "text": "Sabemos que Strahd fue bueno antes de que el Templo lo corrompiera."
+    },
+    {
+      "start": 450.55,
+      "end": 456.22,
+      "source": "TU",
+      "text": "Correto, niña, y también sabemos que su amor por Tatyana lo condenó."
+    },
+    {
+      "start": 456.82,
+      "end": 461.15,
+      "source": "REMOTO",
+      "text": "Baba Lysaga, ¿dónde están las tres gemas que faltan?"
+    },
+    {
+      "start": 461.75,
+      "end": 468.33,
+      "source": "REMOTO",
+      "text": "Una la tiene Strahd, otra la escondí yo, y la tercera... la tercera no importa."
+    },
+    {
+      "start": 468.93,
+      "end": 474.18,
+      "source": "TU",
+      "text": "Necesitamos la que escondiste, para romper el poder del Templo."
+    },
+    {
+      "start": 474.78,
+      "end": 481.12,
+      "source": "REMOTO",
+      "text": "Os la daré si me traéis a Ireena... ah, espera, ya está muerta, qué lástima."
+    },
+    {
+      "start": 481.72,
+      "end": 487.05,
+      "source": "REMOTO",
+      "text": "La bruja se ríe y las patas de la cabaña dan un paso amenazante."
+    },
+    {
+      "start": 487.65,
+      "end": 492.32,
+      "source": "TU",
+      "text": "Kaelen, prepara el hechizo, esto va a acabar en combate."
+    },
+    {
+      "start": 492.92,
+      "end": 498.58,
+      "source": "REMOTO",
+      "text": "Antes de atacar, lanzo una pregunta: ¿qué gana Strahd con todo esto?"
+    },
+    {
+      "start": 499.18,
+      "end": 505.1,
+      "source": "REMOTO",
+      "text": "Gana lo único que quiere, niña: que todos sufran y que nadie lo olvide."
+    },
+    {
+      "start": 505.7,
+      "end": 511.53,
+      "source": "TU",
+      "text": "Baba Lysaga alza las manos y convoca un enjambre de insectos gigantes."
+    },
+    {
+      "start": 512.13,
+      "end": 516.3,
+      "source": "REMOTO",
+      "text": "¡Todos al suelo, el enjambre viene sobre nosotros!"
+    },
+    {
+      "start": 516.9,
+      "end": 522.15,
+      "source": "REMOTO",
+      "text": "Uso la capa para cubrirme y busca refugio detrás de las raíces."
+    },
+    {
+      "start": 522.75,
+      "end": 528.67,
+      "source": "TU",
+      "text": "La Mujer de Negro usa el collar para crear una barrera de niebla negra."
+    },
+    {
+      "start": 529.27,
+      "end": 534.02,
+      "source": "REMOTO",
+      "text": "El enjambre rodea la niebla pero no se atreve a cruzarla."
+    },
+    {
+      "start": 534.62,
+      "end": 539.37,
+      "source": "REMOTO",
+      "text": "Aprovecho para lanzar un ataque sorpresa contra la bruja."
+    },
+    {
+      "start": 539.97,
+      "end": 545.55,
+      "source": "TU",
+      "text": "La bruja bloquea con un escudo de huesos y contraataca con un rayo."
+    },
+    {
+      "start": 546.15,
+      "end": 551.4,
+      "source": "REMOTO",
+      "text": "El rayo me alcanza y me deja a la mitad de mis puntos de golpe."
+    },
+    {
+      "start": 552.0,
+      "end": 556.92,
+      "source": "REMOTO",
+      "text": "Kaelen, cura a Vor'mex, yo aguanto el frente con el escudo."
+    },
+    {
+      "start": 557.52,
+      "end": 562.6,
+      "source": "TU",
+      "text": "La cabaña da una patada enorme, casi nos aplasta a Lex ya mi."
+    },
+    {
+      "start": 563.2,
+      "end": 568.45,
+      "source": "REMOTO",
+      "text": "Hay que moverse, si la cabaña pisa no quedará nada de nosotros."
+    },
+    {
+      "start": 569.05,
+      "end": 575.38,
+      "source": "REMOTO",
+      "text": "Propongo retirarnos y volver con refuerzos, esto es demasiado para nosotros."
+    },
+    {
+      "start": 575.98,
+      "end": 580.65,
+      "source": "TU",
+      "text": "Sí, por primera vez en la campaña, huimos de un combate."
+    },
+    {
+      "start": 581.25,
+      "end": 586.42,
+      "source": "REMOTO",
+      "text": "Corremos hacia el río mientras la bruja nos lanza maldiciones."
+    },
+    {
+      "start": 587.02,
+      "end": 592.93,
+      "source": "REMOTO",
+      "text": "Al llegar al río, las patas de la cabaña se detienen, no cruza el agua."
+    },
+    {
+      "start": 593.53,
+      "end": 598.95,
+      "source": "TU",
+      "text": "Parece que Baba Lysaga no puede salir de su territorio, anotadlo."
+    },
+    {
+      "start": 599.55,
+      "end": 605.13,
+      "source": "REMOTO",
+      "text": "Al otro lado del río, recuperamos el aliento y curamos las heridas."
+    },
+    {
+      "start": 605.73,
+      "end": 611.48,
+      "source": "REMOTO",
+      "text": "Bueno, al menos ya sabemos dónde está la bruja y cómo la debilitamos."
+    },
+    {
+      "start": 612.08,
+      "end": 618.0,
+      "source": "TU",
+      "text": "Y sabemos que el collar puede frenar cosas oscuras, eso es una ventaja."
+    },
+    {
+      "start": 618.6,
+      "end": 623.77,
+      "source": "REMOTO",
+      "text": "Debemos volver a Vallaki a descansar y planear bien el asalto."
+    },
+    {
+      "start": 624.37,
+      "end": 629.2,
+      "source": "REMOTO",
+      "text": "Antes, anotemos todo lo que nos dijo sobre las tres gemas."
+    },
+    {
+      "start": 629.8,
+      "end": 635.88,
+      "source": "TU",
+      "text": "Una es de Strahd, otra la tenía la bruja y de la tercera no sabemos nada."
+    },
+    {
+      "start": 636.48,
+      "end": 642.32,
+      "source": "REMOTO",
+      "text": "Puede que la tercera esté en el propio Templo de Ámbar, tiene sentido."
+    },
+    {
+      "start": 642.92,
+      "end": 648.67,
+      "source": "REMOTO",
+      "text": "Sí, tiene sentido, cada gema sostiene una parte del poder del Templo."
+    },
+    {
+      "start": 649.27,
+      "end": 654.68,
+      "source": "TU",
+      "text": "Entonces necesitamos al menos dos gemas para debilitar el Templo."
+    },
+    {
+      "start": 655.28,
+      "end": 661.12,
+      "source": "REMOTO",
+      "text": "Propongo que la próxima sesión empecemos planeando cómo robar la gema."
+    },
+    {
+      "start": 661.72,
+      "end": 667.72,
+      "source": "REMOTO",
+      "text": "Y también deberíamos hablar con Ismark sobre lo de Ireena, aunque duela."
+    },
+    {
+      "start": 668.32,
+      "end": 673.9,
+      "source": "TU",
+      "text": "De acuerdo, lo dejamos aquí, el próximo día planificamos el asalto."
+    },
+    {
+      "start": 674.5,
+      "end": 680.67,
+      "source": "REMOTO",
+      "text": "Antes de terminar, revisemos las reglas del agarre y de las armas grandes."
+    },
+    {
+      "start": 681.27,
+      "end": 687.18,
+      "source": "REMOTO",
+      "text": "Sí, quiero confirmar cómo funciona la pica contra enemigos en el suelo."
+    },
+    {
+      "start": 687.78,
+      "end": 693.03,
+      "source": "TU",
+      "text": "Vale, lo reviso yo y lo explico al inicio de la próxima sesión."
+    },
+    {
+      "start": 693.63,
+      "end": 698.3,
+      "source": "REMOTO",
+      "text": "Perfecto, entonces cerramos la sesión aquí, fue intensa."
+    },
+    {
+      "start": 698.9,
+      "end": 705.15,
+      "source": "REMOTO",
+      "text": "Resumidamente: fallamos el asalto a Baba Lysaga pero aprendimos sus planes."
+    },
+    {
+      "start": 705.75,
+      "end": 711.83,
+      "source": "TU",
+      "text": "Apuntad también el molino de la familia Dust y el diario que encontramos."
+    },
+    {
+      "start": 712.43,
+      "end": 717.68,
+      "source": "REMOTO",
+      "text": "Y no olvidéis que Strahd nos observa y que Vasili era él mismo."
+    },
+    {
+      "start": 718.28,
+      "end": 722.62,
+      "source": "REMOTO",
+      "text": "Fin de la sesión, descansamos y recargamos hechizos."
+    },
+    {
+      "start": 723.22,
+      "end": 729.13,
+      "source": "TU",
+      "text": "La próxima empezamos en Vallaki, al amanecer, con todo el grupo entero."
+    },
+    {
+      "start": 729.73,
+      "end": 733.82,
+      "source": "REMOTO",
+      "text": "Recordad traer más pociones de curación esta vez."
+    },
+    {
+      "start": 734.42,
+      "end": 739.58,
+      "source": "REMOTO",
+      "text": "Sí, que la última casi palmamos todos contra los hombres lobo."
+    },
+    {
+      "start": 740.18,
+      "end": 743.85,
+      "source": "TU",
+      "text": "Vale, lo dejamos aquí, buen trabajo a todos."
+    },
+    {
+      "start": 744.45,
+      "end": 748.87,
+      "source": "REMOTO",
+      "text": "Gracias por la sesión, nos vemos la semana que viene."
+    }
+  ]
+}
