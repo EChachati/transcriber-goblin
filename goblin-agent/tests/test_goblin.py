@@ -21,6 +21,7 @@ from goblin_agent.summarize import (
     drop_noise_bullets,
     ensure_heading,
     ensure_key_facts,
+    ensure_note_coverage,
     extract_bullets,
     extract_key_facts,
     looks_verbatim,
@@ -353,6 +354,23 @@ def test_ensure_key_facts_anade_lo_que_falta():
     missing = "Los huesos de Sant Andral han desaparecido de la iglesia"
     out = ensure_key_facts(section, [missing])
     assert out.splitlines()[-1] == "- " + missing
+
+
+def test_ensure_note_coverage_fuerza_una_vineta_por_nota():
+    notes = [
+        "- El grupo llega a la iglesia y habla con el padre Lucian Petrovich.",
+        "- Sulfur revela que el cuerpo de Bruna está acoplado con el de Enza.",
+        "- jajaja qué risa, ok, sí, claro.",
+    ]
+    section = "# T\n- El grupo llega a la iglesia y habla con el padre Lucian Petrovich."
+    out = ensure_note_coverage(section, notes)
+    # La primera nota ya está cubierta; la de Sulfur se añade; la de risas no.
+    assert "Sulfur revela" in out
+    assert "jajaja" not in out
+    assert out.count("- ") == 2
+    # Sin notas nuevas, la sección no cambia.
+    assert ensure_note_coverage(section, [notes[0]]) == section
+    assert ensure_note_coverage(section, []) == section
 
 
 def test_polish_section_quita_marcas_y_negritas():

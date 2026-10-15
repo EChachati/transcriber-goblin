@@ -13,7 +13,12 @@ from .chunking import Chunk, chunk_segments
 from .config import Config
 from .ollama import OllamaClient
 from .template import DEFAULT_TEMPLATE, load_template, parse_template
-from .transcript import drop_leading_minutes, drop_minutes_range, drop_trailing_minutes, load_transcript
+from .transcript import (
+    drop_leading_minutes,
+    drop_minutes_range,
+    drop_trailing_minutes,
+    load_transcript,
+)
 from .vault import (
     DRAFTS_DIR,
     NEW_NOTES_DIR,
@@ -57,14 +62,11 @@ def strip_timestamps(text: str) -> str:
     Acepta también rangos («[196:01-196:06]») y negrita («**[39:03]**»), que el
     modelo escribe cuando un resumen abarca varios segundos.
     """
-    return (
-        re.sub(
-            r"\**\[[0-9]{1,3}:[0-9]{2}(?:\s*-\s*[0-9]{1,3}:[0-9]{2})?\]\**[ \t]*",
-            "",
-            text,
-        )
-        .strip()
-    )
+    return re.sub(
+        r"\**\[[0-9]{1,3}:[0-9]{2}(?:\s*-\s*[0-9]{1,3}:[0-9]{2})?\]\**[ \t]*",
+        "",
+        text,
+    ).strip()
 
 
 # --------------------------------------------------------------------------- #
@@ -85,9 +87,12 @@ _PLOT_HINTS = re.compile(
     r"confies\w+|secreto|misi[oó]n|encarg\w+|libro|maldici\w+|embosc\w+|trampa|"
     r"pacto|profec\w+|aviso|advert\w+|rescatar|salvar|peligro|traici\w+|"
     r"misteri\w+|aparece|apareci\w+|desapare\w+|hija|hijo|herman[oa]|padre|madre|"
-    r"amig[oa]|en realidad|por fin|al final)\b",
+    r"amig[oa]|ángel|angel|celestial|aasimar|demonio|naturaleza|huesos|"
+    r"en realidad|por fin|al final)\b",
     re.IGNORECASE,
 )
+# Nombre propio a mitad de frase («… y te dice Sulfur …»): señal de entidad.
+_MID_SENTENCE_NAME_RE = re.compile(r"[a-záéíóúñ,;:!?]\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{3,}")
 
 
 def salient_lines(
@@ -97,11 +102,16 @@ def salient_lines(
 ) -> list[str]:
     """Líneas del tramo con posible carga de trama (nombres propios o sucesos).
 
-    El modelo pequeño tiende a resumir la charla de mesa y a saltarse lo que
-    importa (muertes, revelaciones, misiones). Estas líneas se le muestran como
-    pistas para que no se le escapen; siguen siendo entrada, no salida.
+    El modelo tiende a resumir la charla de mesa y a saltarse lo que importa
+    (muertes, revelaciones, misiones). Estas líneas se le muestran como pistas
+    para que no se le escapen; siguen siendo entrada, no salida.
     """
-    names = [normalize(n) for n in entity_names if len(n) >= 4]
+    name_words = {
+        word
+        for name in entity_names
+        for word in normalize(name).split()
+        if len(word) >= 4
+    }
     scored: list[tuple[int, int, str]] = []
     for position, raw in enumerate(chunk_text.splitlines()):
         line = raw.strip()
@@ -115,9 +125,9 @@ def salient_lines(
             continue
         norm = normalize(body)
         score = 0
-        if names and any(name in norm for name in names):
+        if name_words and any(word in norm for word in name_words):
             score += 2
-        if _PLOT_HINTS.search(body):
+        if _PLOT_HINTS.search(body) or _MID_SENTENCE_NAME_RE.search(body):
             score += 1
         if score:
             scored.append((score, position, line))
@@ -153,9 +163,7 @@ def build_map_prompt(
     if roster:
         parts.append("Personajes jugadores (roster): " + ", ".join(roster) + ".")
     if refs:
-        parts.append(
-            "Contexto del vault (úsalo solo como referencia; no lo resumas):"
-        )
+        parts.append("Contexto del vault (úsalo solo como referencia; no lo resumas):")
         for stem, note in refs:
             parts.append(f"### {stem}\n{note}")
     parts.append(
@@ -198,9 +206,7 @@ def theme_count_for(condensed: str) -> int:
 
 
 # Palabras de origen («REMOTE:», «[REMOTE]:», «TU:») que ensucian las notas del map.
-_NOTE_SPEAKER_RE = re.compile(
-    r"\[?\b(?:REMOTE|REMOTO|TU|TÚ)\]?\s*:\s*", re.IGNORECASE
-)
+_NOTE_SPEAKER_RE = re.compile(r"\[?\b(?:REMOTE|REMOTO|TU|TÚ)\]?\s*:\s*", re.IGNORECASE)
 # Etiqueta de origen al principio de una línea y SIN dos puntos («REMOTE decide …»
 # o «Remoto calma …»): el modelo la convierte en personaje si no la tocamos.
 _LINE_SPEAKER_RE = re.compile(
@@ -216,7 +222,9 @@ _SUBJECT_START_RE = re.compile(r"(?m)(^|[.!?][ \t]+)el grupo\b")
 # Sujeto neutro con el que sustituirla («REMOTO» es el resto de jugadores).
 _GROUP_SUBJECT = {"es": "El grupo", "en": "The group"}
 # Contracciones del español alrededor del sujeto («a el grupo» → «al grupo»).
-_CONTRACTIONS = {"es": [((r"\ba el grupo\b"), "al grupo"), (r"\bde el grupo\b", "del grupo")]}
+_CONTRACTIONS = {
+    "es": [((r"\ba el grupo\b"), "al grupo"), (r"\bde el grupo\b", "del grupo")]
+}
 
 
 def _group_subject(language: str) -> str:
@@ -280,7 +288,9 @@ def build_sections_prompt(
         f"Escribe en {cfg.language}.",
     ]
     if used_titles:
-        parts.append("No repitas estos títulos ya usados: " + "; ".join(used_titles) + ".")
+        parts.append(
+            "No repitas estos títulos ya usados: " + "; ".join(used_titles) + "."
+        )
     if key_facts:
         parts.append(
             "HECHOS CLAVE que DEBEN aparecer en esta sección (redáctalos con tus "
@@ -422,7 +432,9 @@ def split_notes(notes: list[str], count: int) -> list[list[str]]:
 
 def section_titles(text: str) -> list[str]:
     """Títulos («# …») que aparecen en una sección."""
-    return [m.group(1).strip() for m in _HEADING_RE.finditer(text) if m.group(1).strip()]
+    return [
+        m.group(1).strip() for m in _HEADING_RE.finditer(text) if m.group(1).strip()
+    ]
 
 
 def ensure_heading(text: str, fallback: str) -> str:
@@ -498,7 +510,12 @@ _MECHANIC_RE = re.compile(
     r"|\bnat(?:ural)?\s*\d{1,2}\b"
     r"|\bd\d{1,2}\b"
     r"|\bpo\s*\d{1,2}\b"
-    r"|\biniciativa\b",
+    r"|\biniciativa\b"
+    r"|\brage\b"
+    r"|\bcure wounds\b"
+    r"|\bpuntos? de (?:inspiraci[oó]n|golpe|expiraci[oó]n)\b"
+    r"|\bestabiliza\w+"
+    r"|\bpuntos? de vida\b",
     re.IGNORECASE,
 )
 # Viñetas de fuera de juego (directo, pausa, Discord) que se colaron.
@@ -539,14 +556,61 @@ _CLAVE_RE = re.compile(r"CLAVE:\s*([^\]\n]+)")
 _FACT_PLACEHOLDERS = {"—", "-", "...", "nada", "ninguno", "sin nada"}
 _FACT_STOPWORDS = {
     # español (en minúsculas ya normalizado: sin acentos)
-    "para", "como", "pero", "este", "esta", "esto", "esos", "esas", "muy",
-    "desde", "hacia", "entre", "sobre", "cuando", "porque", "entonces",
-    "todos", "todas", "tienen", "tiene", "habia", "sino", "otro", "otra",
-    "otros", "otras", "mismo", "misma", "donde", "durante", "antes",
-    "despues", "aunque", "tambien", "vuelve", "empieza", "sigue", "dice",
+    "para",
+    "como",
+    "pero",
+    "este",
+    "esta",
+    "esto",
+    "esos",
+    "esas",
+    "muy",
+    "desde",
+    "hacia",
+    "entre",
+    "sobre",
+    "cuando",
+    "porque",
+    "entonces",
+    "todos",
+    "todas",
+    "tienen",
+    "tiene",
+    "habia",
+    "sino",
+    "otro",
+    "otra",
+    "otros",
+    "otras",
+    "mismo",
+    "misma",
+    "donde",
+    "durante",
+    "antes",
+    "despues",
+    "aunque",
+    "tambien",
+    "vuelve",
+    "empieza",
+    "sigue",
+    "dice",
     # inglés
-    "the", "and", "that", "with", "from", "this", "have", "were", "they",
-    "their", "into", "then", "them", "when", "what", "which",
+    "the",
+    "and",
+    "that",
+    "with",
+    "from",
+    "this",
+    "have",
+    "were",
+    "they",
+    "their",
+    "into",
+    "then",
+    "them",
+    "when",
+    "what",
+    "which",
 }
 
 
@@ -606,6 +670,71 @@ def ensure_key_facts(section: str, facts: list[str]) -> str:
     return "\n".join(lines).strip()
 
 
+def _note_core(note: str) -> str | None:
+    """Viñeta más representativa de una nota (la de más carga de trama).
+
+    Devuelve ``None`` si la nota no tiene ninguna viñeta con pinta de hecho de
+    juego (así no se fuerza en el cuerpo la charla de mesa de un tramo malo).
+    """
+    best: tuple[int, str] | None = None
+    for line in note.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith(("- ", "* ")):
+            stripped = stripped[2:].strip()
+        content = strip_timestamps(stripped).strip().replace("**", "")
+        content = re.sub(r"\[?CLAVE:.*$", "", content).strip()
+        content = re.sub(r"^\[[^\]\n]{1,30}\]\s*:\s*", "", content).strip()
+        content = re.sub(r"^([A-ZÁÉÍÓÚÑ][\w'’\-]{1,20}):\s*", "", content).strip()
+        if len(content.split()) < 5:
+            continue
+        if _MECHANIC_RE.search(content) or _OFF_GAME_RE.search(content):
+            continue
+        score = len(_PLOT_HINTS.findall(content)) + len(
+            _MID_SENTENCE_NAME_RE.findall(content)
+        )
+        # El diálogo literal («Me volteo y le digo…») es peor viñeta que un resumen.
+        if re.match(r"(?i)^(?:yo|me|mi|nos|te|t[uú]|nosotros|aquí|ahora)\b", content):
+            score -= 1
+        if score > 0 and (best is None or score > best[0]):
+            best = (score, content)
+    return best[1] if best else None
+
+
+def ensure_note_coverage(
+    section: str,
+    notes: list[str],
+    max_added: int = 4,
+) -> str:
+    """Garantiza que cada nota con trama aporte al menos una viñeta al cuerpo.
+
+    El modelo pequeño tiende a resumir solo una parte del lote y a olvidar
+    tramos enteros; aquí, si una nota con hechos no aparece en la sección, se
+    añade a mano su viñeta más representativa (sin volver a llamar al modelo).
+    """
+    if not notes:
+        return section
+    section_words = _fact_words(section)
+    additions: list[str] = []
+    for note in notes:
+        core = _note_core(note)
+        if not core or _fact_covered(core, section_words):
+            continue
+        if any(_fact_covered(core, _fact_words(added)) for added in additions):
+            continue
+        additions.append(core)
+        if len(additions) >= max_added:
+            break
+    if not additions:
+        return section
+    lines = [line.rstrip() for line in section.splitlines()]
+    while lines and not lines[-1].strip():
+        lines.pop()
+    lines.extend("- " + core[:300].rstrip() for core in additions)
+    return "\n".join(lines).strip()
+
+
 _BOLD_SPAN_RE = re.compile(r"\*\*([^*]+)\*\*")
 
 
@@ -649,9 +778,7 @@ def merge_sections(text: str) -> str:
         else:
             index_by_key[key] = len(merged)
             merged.append((name, bullets))
-    return "\n\n".join(
-        f"# {name}\n" + "\n".join(bullets) for name, bullets in merged
-    )
+    return "\n\n".join(f"# {name}\n" + "\n".join(bullets) for name, bullets in merged)
 
 
 def _generate_body(
@@ -667,13 +794,16 @@ def _generate_body(
         facts = extract_key_facts(batch)
         prompt = build_sections_prompt(cfg, batch, used_titles, key_facts=facts)
         raw = client.generate(prompt, system=_final_system(cfg))
-        section = ensure_key_facts(
-            polish_section(
-                drop_noise_bullets(
-                    cap_bullets(normalize_headings(ensure_heading(raw, f"Parte {i}")))
-                )
+        section = ensure_note_coverage(
+            ensure_key_facts(
+                polish_section(
+                    drop_noise_bullets(
+                        cap_bullets(normalize_headings(ensure_heading(raw, f"Parte {i}")))
+                    )
+                ),
+                facts,
             ),
-            facts,
+            batch,
         )
         if section:
             sections.append(section)
@@ -755,7 +885,7 @@ def _name_key(name: str) -> str:
     key = normalize(name).strip()
     for article in ("la ", "el ", "los ", "las ", "un ", "una ", "the "):
         if key.startswith(article):
-            key = key[len(article):]
+            key = key[len(article) :]
             break
     return key
 
@@ -798,7 +928,12 @@ def _write_new_notes(
             continue
         folder = _folder_for(str(entry.get("tipo", "")))
         zona = str(entry.get("zona", "")).strip()
-        base = cfg.work_vault / NEW_NOTES_DIR / folder / (sanitize_filename(zona) if zona else "")
+        base = (
+            cfg.work_vault
+            / NEW_NOTES_DIR
+            / folder
+            / (sanitize_filename(zona) if zona else "")
+        )
         path = base / f"{sanitize_filename(name)}.md"
         if path.exists():
             continue
@@ -848,10 +983,7 @@ def run(
     for start, end in skip_ranges or ():
         trimmed = drop_minutes_range(transcript, start, end)
         if len(trimmed.segments) != len(transcript.segments):
-            log(
-                f"[agent] omito el rango {start:g}-{end:g} min "
-                "(charla fuera de juego)"
-            )
+            log(f"[agent] omito el rango {start:g}-{end:g} min (charla fuera de juego)")
             transcript = trimmed
     if skip_tail_minutes and skip_tail_minutes > 0:
         trimmed = drop_trailing_minutes(transcript, skip_tail_minutes)
@@ -904,7 +1036,11 @@ def run(
             ch.text, cfg.max_ref_notes, cfg.max_ref_chars, cfg.max_ref_total
         )
         prompt = build_map_prompt(
-            cfg, ch, refs, index.roster, salient=salient_lines(ch.text, [s for s, _ in refs])
+            cfg,
+            ch,
+            refs,
+            index.roster,
+            salient=salient_lines(ch.text, [s for s, _ in refs]),
         )
         result = strip_code_fences(client.generate(prompt, system=_map_system(cfg)))
         if looks_verbatim(ch.text, result):
@@ -933,7 +1069,9 @@ def run(
     # --- notas de hoy ----------------------------------------------------- #
     partials_clean = [strip_timestamps(p).strip() for p in partials if p.strip()]
 
-    template = load_template(template_path) or index.vault_template() or DEFAULT_TEMPLATE
+    template = (
+        load_template(template_path) or index.vault_template() or DEFAULT_TEMPLATE
+    )
     template = template.replace("{{campana}}", cfg.campaign_name)
     recap_heading, fixed_sections = parse_template(template)
     if not recap_heading:
