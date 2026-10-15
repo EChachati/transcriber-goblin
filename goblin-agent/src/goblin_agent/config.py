@@ -74,7 +74,7 @@ class Config:
             ),
             campaign_name=os.environ.get("TG_GOBLIN_CAMPAIGN", "Curse of Strahd"),
             ollama_url=os.environ.get("TG_GOBLIN_OLLAMA_URL", "http://localhost:11434"),
-            model=os.environ.get("TG_GOBLIN_MODEL", "qwen2.5:3b"),
+            model=os.environ.get("TG_GOBLIN_MODEL", "qwen2.5:7b"),
             num_ctx=_int("TG_GOBLIN_NUM_CTX", 8192),
             num_predict=_int("TG_GOBLIN_NUM_PREDICT", 3072),
             temperature=_float("TG_GOBLIN_TEMPERATURE", 0.3),

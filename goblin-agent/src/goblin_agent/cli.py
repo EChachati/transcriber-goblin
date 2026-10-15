@@ -117,7 +117,7 @@ def main(argv=None) -> int:
         p.add_argument("--source-vault", help="vault original (SOLO LECTURA)")
         p.add_argument("--work-vault", help="copia de trabajo donde se escribe")
         p.add_argument("--campaign", help="nombre de la campaña")
-        p.add_argument("--model", help="modelo de Ollama (ej. qwen2.5:3b)")
+        p.add_argument("--model", help="modelo de Ollama (ej. qwen2.5:7b)")
         p.add_argument("--ollama-url", help="URL de Ollama")
         p.add_argument("--language", help="idioma del resumen (es/en/...)")
 
