@@ -7,9 +7,9 @@ Colaboración en notas entre amigos + transcripción de llamadas + memoria para 
 | # | Módulo | Estado | Qué hace |
 |---|--------|--------|----------|
 | 1 | `server/` | **hecho** | FastAPI: auth por invitación, tokens y-sweet, adjuntos por hash, espejo CRDT→markdown |
-| 2 | `transcriber/` | **hecho** | Captura micro+escritorio → faster-whisper GPU + VAD → nota al backend |
+| 2 | `transcriber/` | **hecho** | Captura micro+escritorio → faster-whisper GPU + VAD → nota al backend; opcional diarización (pyannote: S1…Sn) y modo offline `file` para VODs |
 | 3 | `plugin-obsidian/` | **en progreso** | Plugin TS: editar notas del vault con CRDT realtime (MVP compilado, protocolo verificado e2e) |
-| 4 | `goblin-agent/` | pendiente | Resúmenes con Ollama (decisiones, action items, citas) |
+| 4 | `goblin-agent/` | **en progreso** | Resúmenes con Ollama sobre el vault (map-reduce, referencias, notas nuevas); soporta transcripciones diarizadas |
 | 5 | `linker/` | pendiente | Keywords → `[[wikilinks]]` automáticos entre notas |
 | 6 | `webapp/` | pendiente | Web propia: editor, backlinks, grafo, memoria de IA |
 
