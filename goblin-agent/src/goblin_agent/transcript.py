@@ -5,6 +5,10 @@ Formatos soportados:
 * ``transcript.json`` — el que genera ``tg-transcriber`` (campos ``session``,
   ``started_at`` y ``segments`` con ``start``/``end``/``source``/``text``).
 * ``transcript.md`` — markdown con líneas ``**[mm:ss] SOURCE:** texto``.
+
+Los hablantes pueden venir como ``TU``/``REMOTO`` (grabación clásica) o como
+``S1``, ``S2``… (diarización). ``apply_speaker_names`` permite mapear esas
+etiquetas a nombres reales de jugador antes de resumir.
 """
 
 from __future__ import annotations
@@ -30,7 +34,54 @@ class Transcript:
     segments: list[Segment]
 
 
-_MD_LINE = re.compile(r"^\*\*\[(\d{1,2}):(\d{2})\]\s*([^:]+):\*\*\s*(.*)$")
+# Minutos de 1 a 3 dígitos: sesiones de rol pasan de las 1 h 40 (mm:ss = 100+).
+_MD_LINE = re.compile(
+    r"^\*\*\[(\d{1,3}):(\d{2})\]\s*([^:]+):\*\*\s*(.*)$"
+)
+
+
+def parse_speaker_names(raw: str | None) -> dict[str, str]:
+    """«S1=DM,S2=Alicia» → ``{"S1": "DM", "S2": "Alicia"}``.
+
+    Acepta pares separados por comas o punto y coma. Es tolerante: ignora
+    espacios sobrantes y entradas vacías.
+    """
+    if not raw:
+        return {}
+    mapping: dict[str, str] = {}
+    for chunk in re.split(r"[,;]", raw):
+        if not chunk.strip():
+            continue
+        if "=" not in chunk:
+            raise ValueError(
+                f"Nombre de hablante inválido: {chunk!r} (usa ETIQUETA=Nombre)"
+            )
+        key, value = chunk.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if key and value:
+            mapping[key.upper()] = value
+    return mapping
+
+
+def apply_speaker_names(
+    transcript: Transcript, mapping: dict[str, str] | None
+) -> Transcript:
+    """Copia del transcript con las etiquetas de hablante renombradas.
+
+    ``{"S1": "DM"}`` convierte ``source="S1"`` en ``source="DM"``. Las etiquetas
+    que no estén en el mapa se dejan tal cual.
+    """
+    if not mapping:
+        return transcript
+    upper = {k.upper(): v for k, v in mapping.items()}
+    return replace(
+        transcript,
+        segments=[
+            replace(seg, source=upper.get(seg.source.strip().upper(), seg.source))
+            for seg in transcript.segments
+        ],
+    )
+
 
 
 def load_transcript(path: str | Path) -> Transcript:
