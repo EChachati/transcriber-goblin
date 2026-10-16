@@ -144,6 +144,13 @@ manual si no está disponible). **Nunca** toca el original.
 Genera el borrador. La transcripción puede ser un `transcript.json` (el que
 produce `tg-transcriber`) o un Markdown con líneas `**[mm:ss] QUIEN:** texto`.
 
+El campo `source` puede ser `TU`/`REMOTO` (grabación clásica) o `S1`, `S2`… si la
+transcripción viene **diarizada** (varias voces remotas distinguidas por
+`tg-transcriber --diarize` o `tg-transcriber file`). En ambos casos las etiquetas
+son *hablantes*, no nombres de personaje: el agente no las convierte en notas ni
+en personajes. Si sabes quién es cada `S#`, mapéalos a su nombre real con
+`--speaker-names` para que el resumen use los nombres correctos.
+
 Opciones útiles:
 
 | Flag | Qué hace |
@@ -155,6 +162,7 @@ Opciones útiles:
 | `--skip-minutes N` | Ignora los primeros N minutos (cháchara previa a la partida). |
 | `--skip-tail-minutes N` | Ignora los últimos N minutos (cierre del directo, post-partida). |
 | `--skip-range INICIO-FIN` | Ignora un tramo intermedio (pausas, charla fuera de juego). Se repite el flag para varios. Acepta `76.7-94.8` o `76:40-94:50`. |
+| `--speaker-names S1=Nombre,...` | Renombra los hablantes diarizados antes de resumir (`S1=DM,S2=Alicia`). |
 | `--no-propose-notes` | No propone notas nuevas. |
 | `--dry-run` | Solo analiza y dice cuántos tramos salen (no llama al modelo). |
 | `--dump CARPETA` | Vuelca todos los pasos intermedios (para depurar). |
@@ -178,6 +186,10 @@ goblin-agent summarize transcript.json --skip-minutes 20 --session 11 --no-refre
 # Una pausa a mitad de partida y la despedida del directo al final
 goblin-agent summarize transcript.json \
   --skip-minutes 35 --skip-range 76:40-94:50 --skip-tail-minutes 7
+
+# Transcripción diarizada (S1..Sn): decirle quién es cada voz
+goblin-agent summarize transcript.json \
+  --speaker-names 'S1=DM,S2=Arcaris,S3=Kaelen' --no-refresh
 ```
 
 ---

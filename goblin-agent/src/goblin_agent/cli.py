@@ -8,7 +8,7 @@ from dataclasses import replace
 from .config import Config
 from .ollama import OllamaClient, OllamaError
 from .summarize import run
-from .transcript import parse_minutes
+from .transcript import parse_minutes, parse_speaker_names
 from .vault import VaultIndex, refresh_work_vault
 
 
@@ -28,6 +28,14 @@ def _parse_ranges(values) -> list[tuple[float, float]]:
             raise SystemExit(f"--skip-range inválido: {raw!r} (el fin debe ser > inicio)")
         ranges.append((start, end))
     return ranges
+
+
+def _parse_speaker_names(raw) -> dict[str, str]:
+    """«S1=DM,S2=Alicia» → ``{"S1": "DM", "S2": "Alicia"}`` (vacío → {})."""
+    try:
+        return parse_speaker_names(raw)
+    except ValueError as exc:
+        raise SystemExit(f"--speaker-names inválido: {exc}") from exc
 
 
 def _apply_overrides(cfg: Config, args) -> Config:
@@ -95,6 +103,7 @@ def cmd_summarize(args) -> int:
         skip_minutes=args.skip_minutes,
         skip_tail_minutes=args.skip_tail_minutes,
         skip_ranges=_parse_ranges(args.skip_range),
+        speaker_names=_parse_speaker_names(args.speaker_names),
     )
     if args.dry_run:
         print(f"[dry] {result.chunks} tramos (no se llamó al modelo).")
@@ -158,6 +167,15 @@ def main(argv=None) -> int:
         help=(
             "rango de minutos a ignorar (pausas/charla fuera de juego); repite el "
             "flag para varios. Acepta 76.7-94.8 o 76:40-94:50"
+        ),
+    )
+    p_sum.add_argument(
+        "--speaker-names",
+        default=None,
+        metavar="S1=Nombre,S2=Nombre",
+        help=(
+            "nombra los hablantes diarizados antes de resumir (p. ej. "
+            "'S1=DM,S2=Alicia'); útil cuando el transcript usa etiquetas S1..Sn"
         ),
     )
     add_common(p_sum)
