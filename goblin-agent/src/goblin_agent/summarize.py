@@ -14,6 +14,7 @@ from .config import Config
 from .ollama import OllamaClient
 from .template import DEFAULT_TEMPLATE, load_template, parse_template
 from .transcript import (
+    apply_speaker_names,
     drop_leading_minutes,
     drop_minutes_range,
     drop_trailing_minutes,
@@ -54,6 +55,30 @@ def looks_verbatim(chunk_text: str, output: str) -> bool:
         return False
     hits = sum(1 for line in source_lines if line in norm_out)
     return hits / len(source_lines) >= 0.5
+
+
+def drop_verbatim_lines(chunk_text: str, output: str) -> str:
+    """Quita de un resumen las líneas que son copia literal del tramo.
+
+    El modelo (sobre todo el pequeño) a veces pega líneas enteras de la
+    transcripción en medio de las viñetas: basura de mesa que acaba en el
+    borrador. Se quitan aquí, sin tocar las paráfrasis ni la línea «CLAVE:».
+    """
+    full = normalize(chunk_text)
+    kept: list[str] = []
+    for line in output.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.upper().startswith("CLAVE:"):
+            kept.append(line)
+            continue
+        content = re.sub(r"^[-*]\s*", "", stripped)
+        content = re.sub(r"^\[[0-9:]{1,8}\]\s*", "", content)
+        content = _NOTE_SPEAKER_RE.sub("", content)
+        norm = normalize(content).strip(" .,;:!?…")
+        if len(norm) >= 30 and norm in full:
+            continue  # copia literal del tramo: fuera
+        kept.append(line)
+    return "\n".join(kept).strip()
 
 
 def strip_timestamps(text: str) -> str:
@@ -119,7 +144,10 @@ def salient_lines(
             continue
         body = re.sub(r"^\[\d{1,3}:\d{2}\]\s*", "", line)
         body = re.sub(
-            r"^(?:[A-ZÁÉÍÓÚÑ]{2,}|TU|TÚ|REMOTE|REMOTO)\s*:\s*", "", body, flags=re.I
+            r"^(?:S\d{1,3}|[A-ZÁÉÍÓÚÑ]{2,}|TU|TÚ|REMOTE|REMOTO)\s*:\s*",
+            "",
+            body,
+            flags=re.I,
         )
         if len(body) < 30:
             continue
@@ -139,6 +167,69 @@ def salient_lines(
     return [item[2] for item in chosen]
 
 
+def speaker_labels_in(text: str) -> set[str]:
+    """Etiquetas de hablante presentes en un tramo («[12:03] S2: …»)."""
+    return set(re.findall(r"(?m)^\[\d{1,3}:\d{2}\]\s*([^:\n]+?):", text))
+
+
+def describe_speakers(text: str) -> str:
+    """Explica al modelo qué significan las etiquetas QUIÉN del tramo.
+
+    Distingue el formato clásico (TU/REMOTO) del de diarización (S1, S2…). En
+    el caso diarizado, cada S# es UNA persona distinta: sirve para saber quién
+    habla, no son nombres de personaje.
+    """
+    labels = {lab.strip().upper() for lab in speaker_labels_in(text)}
+    if any(re.fullmatch(r"S\d{1,3}", lab) for lab in labels):
+        return (
+            "El tramo usa el formato [mm:ss] QUIÉN: texto. Las etiquetas «S1», "
+            "«S2», «S3»… son HABLANTES DISTINTOS (cada una es una persona "
+            "diferente, detectada por voz). Esas etiquetas NO son nombres de "
+            "personaje: no las conviertas en nombres propios. Úsalas para saber "
+            "quién dice o hace cada cosa; al redactar escribe el nombre del "
+            "personaje/jugador si lo conoces (p. ej. por el roster), y si no, "
+            "refiérete a él de forma genérica («un jugador», «el DM»)."
+        )
+    if labels & {"TU", "TÚ", "REMOTO", "REMOTE"}:
+        return (
+            "El tramo de transcripción usa el formato [mm:ss] QUIÉN: texto. 'TU' es "
+            "el jugador que grabó; 'REMOTO' es el resto de participantes. Esas "
+            "etiquetas NO son nombres ni personajes: no las conviertas en nombres "
+            "propios; escribe «el grupo» o el nombre del jugador si lo conoces."
+        )
+    return (
+        "El tramo usa el formato [mm:ss] QUIÉN: texto. Esas etiquetas NO son "
+        "nombres ni personajes: no las conviertas en nombres propios; escribe «el "
+        "grupo» o el nombre del jugador si lo conoces."
+    )
+
+
+def speaker_note(text: str) -> str:
+    """Frase breve (prompt de secciones) sobre cómo tratar las etiquetas QUIÉN.
+
+    El cuerpo recibe notas ya limpias (``clean_notes``), así que normalmente no
+    verá etiquetas y caerá en el texto genérico; se adapta igual que
+    ``describe_speakers`` por si llegan notas sin limpiar (o retocadas a mano).
+    """
+    labels = {lab.strip().upper() for lab in speaker_labels_in(text)}
+    if any(re.fullmatch(r"S\d{1,3}", lab) for lab in labels):
+        return (
+            "«S1», «S2», «S3»… son hablantes distintos (una persona cada uno), NO "
+            "nombres de personaje: escribe el nombre del jugador si lo conoces o "
+            "«un jugador»."
+        )
+    if labels & {"TU", "TÚ", "REMOTO", "REMOTE"}:
+        return (
+            "«REMOTO»/«REMOTE»/«TU» y «Remoto» no son nombres de personaje (son "
+            "jugadores): escribe «el grupo» o el nombre del jugador."
+        )
+    return (
+        "Las etiquetas de hablante («S1», «S2»…, «REMOTO»/«REMOTE», «TU») no son "
+        "nombres de personaje (son jugadores): escribe el nombre del jugador si lo "
+        "conoces o «el grupo»/«un jugador»."
+    )
+
+
 def build_map_prompt(
     cfg: Config,
     chunk: Chunk,
@@ -156,7 +247,7 @@ def build_map_prompt(
         "revelaciones, lugares). NO copies frases de la transcripción palabra por "
         "palabra: reescríbelo con tus propias palabras. No inventes nombres ni "
         "hechos: usa solo los que aparecen en el tramo. No escribas etiquetas de "
-        "diálogo («REMOTO:», «Nombre:») al principio de las viñetas; empieza "
+        "diálogo («REMOTO:», «S1:», «Nombre:») al principio de las viñetas; empieza "
         "contando qué ocurre. No añadas conclusiones ni secciones finales: "
         "responde SOLO con las viñetas.",
     ]
@@ -167,10 +258,7 @@ def build_map_prompt(
         for stem, note in refs:
             parts.append(f"### {stem}\n{note}")
     parts.append(
-        "El tramo de transcripción usa el formato [mm:ss] QUIÉN: texto. 'TU' es el "
-        "jugador que grabó; 'REMOTO' es el resto de participantes. Esas etiquetas NO "
-        "son nombres ni personajes: no las conviertas en nombres propios; escribe "
-        "«el grupo» o el nombre del jugador si lo conoces."
+        describe_speakers(chunk.text)
     )
     parts.append(
         "Ignora la charla fuera de juego (la grabación, el stream, planes reales, "
@@ -206,9 +294,18 @@ def theme_count_for(condensed: str) -> int:
 
 
 # Palabras de origen («REMOTE:», «[REMOTE]:», «TU:») que ensucian las notas del map.
-_NOTE_SPEAKER_RE = re.compile(r"\[?\b(?:REMOTE|REMOTO|TU|TÚ)\]?\s*:\s*", re.IGNORECASE)
+# También cubre las etiquetas de la diarización («S1:», «S12:»).
+_NOTE_SPEAKER_RE = re.compile(
+    r"\[?\b(?:S\d{1,3}|REMOTE|REMOTO|TU|TÚ)\]?\s*:\s*", re.IGNORECASE
+)
+# Etiqueta de un hablante diarizado (S1, S2…) al principio de una línea y SIN
+# dos puntos («S2 decide …»): se sustituye por un sujeto neutro singular.
+_SINGLE_LINE_RE = re.compile(
+    r"(?m)^([ \t]*(?:[-*]\s+)?(?:\*\*)?)(?:\[)?S\d{1,3}(?:\])?(?:\*\*)?:?"
+)
 # Etiqueta de origen al principio de una línea y SIN dos puntos («REMOTE decide …»
 # o «Remoto calma …»): el modelo la convierte en personaje si no la tocamos.
+# OJO: sin re.IGNORECASE para no tocar el «tu» en minúscula del español.
 _LINE_SPEAKER_RE = re.compile(
     r"(?m)^([ \t]*(?:[-*]\s+)?(?:\*\*)?)(?:\[)?"
     r"(?:REMOTE|REMOTO|TU|TÚ|Remoto|Remote)"
@@ -217,10 +314,16 @@ _LINE_SPEAKER_RE = re.compile(
 # Mismo problema en mitad de una frase («a REMOTE dos veces»). No se toca el
 # «remoto» en minúscula: en español es un adjetivo normal («ataque remoto»).
 _BARE_SPEAKER_RE = re.compile(r"\b(?:REMOTE|REMOTO|Remoto|Remote)\b")
+# Igual para un S# suelto («se lo dice a S2»).
+_BARE_SINGLE_RE = re.compile(r"\bS\d{1,3}\b")
 # «el grupo» que empieza frase → «El grupo».
 _SUBJECT_START_RE = re.compile(r"(?m)(^|[.!?][ \t]+)el grupo\b")
 # Sujeto neutro con el que sustituirla («REMOTO» es el resto de jugadores).
 _GROUP_SUBJECT = {"es": "El grupo", "en": "The group"}
+# Sujeto neutro para un hablante diarizado anónimo (una sola persona).
+_SINGLE_SUBJECT = {"es": "Uno de los jugadores", "en": "One of the players"}
+# «uno de los jugadores» que empieza frase → «Uno de los jugadores».
+_SINGLE_START_RE = re.compile(r"(?m)(^|[.!?][ \t]+)uno de los jugadores\b")
 # Contracciones del español alrededor del sujeto («a el grupo» → «al grupo»).
 _CONTRACTIONS = {
     "es": [((r"\ba el grupo\b"), "al grupo"), (r"\bde el grupo\b", "del grupo")]
@@ -231,23 +334,35 @@ def _group_subject(language: str) -> str:
     return _GROUP_SUBJECT.get((language or "es").strip().lower()[:2], "The group")
 
 
+def _single_subject(language: str) -> str:
+    return _SINGLE_SUBJECT.get(
+        (language or "es").strip().lower()[:2], "One of the players"
+    )
+
+
 def clean_notes(notes: list[str], language: str = "es") -> list[str]:
     """Normaliza las notas del map: quita prefijos de origen y espacios de sobra.
 
     «REMOTE: texto» se elimina (el texto ya se entiende solo); la etiqueta sin dos
     puntos se sustituye por un sujeto neutro («El grupo decide activar el rage»),
-    porque «Remoto» no es un personaje y arruina las secciones finales.
+    porque «Remoto» no es un personaje y arruina las secciones finales. Con la
+    diarización, «S2: texto» se limpia igual y un «S2» suelto pasa a «Uno de los
+    jugadores» (etiqueta anónima, no un nombre propio).
     """
     subject = _group_subject(language)
+    single = _single_subject(language)
     key = (language or "es").strip().lower()[:2]
     cleaned: list[str] = []
     for note in notes:
         text = _NOTE_SPEAKER_RE.sub("", note)
+        text = _SINGLE_LINE_RE.sub(lambda m: m.group(1) + single, text)
         text = _LINE_SPEAKER_RE.sub(lambda m: m.group(1) + subject, text)
+        text = _BARE_SINGLE_RE.sub(single.lower(), text)
         text = _BARE_SPEAKER_RE.sub(subject.lower(), text)
         for pattern, replacement in _CONTRACTIONS.get(key, []):
             text = re.sub(pattern, replacement, text)
         text = _SUBJECT_START_RE.sub(lambda m: m.group(1) + subject, text)
+        text = _SINGLE_START_RE.sub(lambda m: m.group(1) + single, text)
         text = re.sub(r"[ \t]+", " ", text)
         text = re.sub(r"\n{3,}", "\n\n", text).strip()
         if text:
@@ -282,8 +397,8 @@ def build_sections_prompt(
         "Omite la charla de mesa (dados, reglas, risas, inventarios, la grabación o "
         "el stream) salvo que cambie la historia; no menciones tiradas, "
         "modificadores ni dudas de reglas, solo el hecho en el mundo. "
-        "«REMOTO»/«REMOTE»/«TU» y «Remoto» no son nombres de personaje (son "
-        "jugadores): escribe «el grupo» o el nombre del jugador. No copies frases "
+        + speaker_note("\n".join(batch))
+        + " No copies frases "
         "textuales y no inventes hechos que no estén en las notas. "
         f"Escribe en {cfg.language}.",
     ]
@@ -388,7 +503,10 @@ def build_propose_prompt(cfg: Config, final_note: str, existing: list[str]) -> s
         f"{names}.\n\n"
         "A partir del siguiente resumen de sesión, detecta entidades NUEVAS que "
         "merezcan su propia nota y NO estén en la lista: personajes (NPC), "
-        "lugares, objetos, grupos u organizaciones.\n\n"
+        "lugares, objetos, grupos u organizaciones.\n"
+        "NO propongas etiquetas de hablante («S1», «S2»…), colectivos genéricos "
+        "(«el grupo», «los jugadores», «el equipo») ni el DM: no son entidades "
+        "del vault.\n\n"
         f"Resumen de la sesión:\n{final_note}\n\n"
         "Responde SOLO con un array JSON, sin texto alrededor, con esta forma:\n"
         '[{"tipo": "NPC|Lugar|Objeto|Grupo", "nombre": "...", '
@@ -898,6 +1016,7 @@ _PROPOSE_DENY = {
     "remote",
     "remoto",
     "jugadores",
+    "jugador",
     "equipo",
     "team",
     "dm",
@@ -905,6 +1024,18 @@ _PROPOSE_DENY = {
     "master",
     "narrador",
 }
+# Etiquetas de la diarización («S1», «S2»…) propuestas como nombre propio.
+_PROPOSE_DENY_RE = re.compile(r"s\d{1,3}")
+
+
+def is_denied_proposal(name: str) -> bool:
+    """¿El nombre propuesto es una etiqueta de hablante o un colectivo genérico?
+
+    Evita crear notas como «S1»/«S12» (diarización) o «El grupo»: el modelo a
+    veces los confunde con entidades del vault.
+    """
+    key = _name_key(name)
+    return not key or key in _PROPOSE_DENY or bool(_PROPOSE_DENY_RE.fullmatch(key))
 
 
 def _write_new_notes(
@@ -924,7 +1055,7 @@ def _write_new_notes(
     for entry in entries:
         name = str(entry.get("nombre", "")).strip()
         key = _name_key(name)
-        if not name or key in existing_keys or key in _PROPOSE_DENY:
+        if not name or key in existing_keys or is_denied_proposal(name):
             continue
         folder = _folder_for(str(entry.get("tipo", "")))
         zona = str(entry.get("zona", "")).strip()
@@ -967,6 +1098,7 @@ def run(
     skip_minutes: float = 0.0,
     skip_tail_minutes: float = 0.0,
     skip_ranges: Sequence[tuple[float, float]] | None = None,
+    speaker_names: dict[str, str] | None = None,
     log=print,
 ) -> SummaryResult:
     assert_safe_paths(cfg.source_vault, cfg.work_vault)
@@ -975,6 +1107,12 @@ def run(
         refresh_work_vault(cfg.source_vault, cfg.work_vault, log=log)
 
     transcript = load_transcript(transcript_path)
+    if speaker_names:
+        transcript = apply_speaker_names(transcript, speaker_names)
+        log(
+            "[agent] renombro hablantes: "
+            + ", ".join(f"{k}→{v}" for k, v in sorted(speaker_names.items()))
+        )
     if skip_minutes and skip_minutes > 0:
         trimmed = drop_leading_minutes(transcript, skip_minutes)
         if len(trimmed.segments) != len(transcript.segments):

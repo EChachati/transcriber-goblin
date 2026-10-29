@@ -11,6 +11,18 @@ class Segment:
     end: float
     source: str
     text: str
+    # Timestamps por palabra (opcional): [(start, end, palabra), ...]. Se usa
+    # para partir un segmento en trozos por hablante sin perder precisión.
+    words: list | None = None
+
+    def to_dict(self) -> dict:
+        """Serialización estable para ``transcript.json`` (sin las palabras)."""
+        return {
+            "start": self.start,
+            "end": self.end,
+            "source": self.source,
+            "text": self.text,
+        }
 
 
 def _preload_cuda_libs() -> bool:
@@ -54,19 +66,34 @@ class Transcriber:
             print(f"[stt] GPU falló ({exc!r}); usando CPU")
             self.model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
-    def transcribe_file(self, wav_path: str, source: str) -> list[Segment]:
+    def transcribe_file(
+        self, wav_path: str, source: str, word_timestamps: bool = False
+    ) -> list[Segment]:
         if not os.path.exists(wav_path):
             return []
         kwargs: dict = {
             "vad_filter": True,
             "vad_parameters": {"min_silence_duration_ms": 500},
             "condition_on_previous_text": False,
+            "word_timestamps": word_timestamps,
         }
         if self.language:
             kwargs["language"] = self.language
         segments, _info = self.model.transcribe(wav_path, **kwargs)
-        return [
-            Segment(start=seg.start, end=seg.end, source=source, text=seg.text.strip())
-            for seg in segments
-            if seg.text.strip()
-        ]
+        result: list[Segment] = []
+        for seg in segments:
+            text = seg.text.strip()
+            if not text:
+                continue
+            words = None
+            if word_timestamps and getattr(seg, "words", None):
+                words = [
+                    (float(w.start), float(w.end), w.word.strip())
+                    for w in seg.words
+                    if w.word.strip()
+                ]
+            result.append(
+                Segment(start=seg.start, end=seg.end, source=source, text=text, words=words)
+            )
+        return result
+
